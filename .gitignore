@@ -1,0 +1,39 @@
+# WordPress
+wp-admin/
+wp-includes/
+wp-content/*
+!wp-content/plugins/
+wp-content/plugins/*
+!wp-content/plugins/modern-admin-styler/
+*.log
+wp-config.php
+wp-*.php
+xmlrpc.php
+.htaccess
+
+# Dependencies
+node_modules/
+vendor/
+composer.lock
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build
+dist/
+build/
+*.zip
+
+# Testing
+coverage/
+.phpunit.result.cache
+
+# Environment
+.env
+.env.local
