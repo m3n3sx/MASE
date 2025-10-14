@@ -489,7 +489,7 @@ The plugin will follow WordPress native patterns, maintain a minimal file struct
 1. WHEN plugin loads THEN it SHALL use admin_init for settings registration
 2. WHEN admin menu is needed THEN it SHALL use admin_menu hook
 3. WHEN assets are enqueued THEN it SHALL use admin_enqueue_scripts hook
-4. WHEN AJAX is handled THEN it SHALL use wp_ajax_{action} hooks
+4. WHEN AJAX is handled THEN it SHALL use wp*ajax*{action} hooks
 5. IF hooks are called too early THEN the system SHALL queue operations
 
 ### Requirement 42
