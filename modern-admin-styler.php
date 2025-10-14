@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name: Modern Admin Styler Enterprise
- * Plugin URI: https://example.com/modern-admin-styler
- * Description: Enterprise-grade WordPress admin styling plugin with clean, maintainable architecture. Customize admin bar, menu, and interface colors with live preview.
- * Version: 1.0.0
+ * Plugin URI: https://github.com/m3n3sx/MASE
+ * Description: Enterprise-grade WordPress admin styling plugin with clean, maintainable architecture. Features: 5 color palettes, import/export, advanced caching, live preview.
+ * Version: 1.1.0
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Author: MASE Development Team
@@ -24,7 +24,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Current plugin version.
  */
-define( 'MASE_VERSION', '1.0.0' );
+define( 'MASE_VERSION', '1.1.0' );
 
 /**
  * Plugin directory path.
