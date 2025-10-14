@@ -143,3 +143,56 @@ input[type="checkbox"]:focus {
         transition: none;
     }
 }
+
+
+/* Palette Presets */
+.palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.palette-preset {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border: 2px solid #ddd;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.palette-preset:hover {
+    border-color: #0073aa;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.palette-preset:focus {
+    border-color: #0073aa;
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+}
+
+.palette-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+}
+
+.palette-name {
+    font-weight: 500;
+    color: #2c3338;
+}
+
+@media (max-width: 768px) {
+    .palette-grid {
+        grid-template-columns: 1fr;
+    }
+}

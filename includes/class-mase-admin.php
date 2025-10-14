@@ -29,6 +29,7 @@ class MASE_Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_head', array( $this, 'inject_custom_css' ), 999 );
 		add_action( 'wp_ajax_mase_save_settings', array( $this, 'handle_ajax_save_settings' ) );
+		add_action( 'wp_ajax_mase_apply_palette', array( $this, 'handle_ajax_apply_palette' ) );
 	}
 
 	public function add_admin_menu() {
@@ -159,6 +160,44 @@ class MASE_Admin {
 		} else {
 			wp_send_json_error( array(
 				'message' => __( 'Failed to save settings', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX apply palette request.
+	 */
+	public function handle_ajax_apply_palette() {
+		// Verify nonce.
+		if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+		}
+
+		// Check user capability.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+		}
+
+		// Get palette ID.
+		$palette_id = isset( $_POST['palette_id'] ) ? sanitize_text_field( $_POST['palette_id'] ) : '';
+
+		if ( empty( $palette_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid palette ID', 'mase' ) ) );
+		}
+
+		// Apply palette.
+		$result = $this->settings->apply_palette( $palette_id );
+
+		if ( $result ) {
+			// Invalidate cache.
+			$this->cache->invalidate( 'generated_css' );
+
+			wp_send_json_success( array(
+				'message' => __( 'Palette applied successfully', 'mase' ),
+			) );
+		} else {
+			wp_send_json_error( array(
+				'message' => __( 'Failed to apply palette', 'mase' ),
 			) );
 		}
 	}

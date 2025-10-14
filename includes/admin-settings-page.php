@@ -20,6 +20,22 @@ if ( ! defined( 'WPINC' ) ) {
 	<form id="mase-settings-form" method="post">
 		<?php wp_nonce_field( 'mase_save_settings', 'mase_nonce' ); ?>
 		
+		<!-- Palette Presets Section -->
+		<h2><?php esc_html_e( 'Quick Style Presets', 'modern-admin-styler' ); ?></h2>
+		<div class="palette-grid">
+			<?php
+			$settings_obj = new MASE_Settings();
+			$palettes     = $settings_obj->get_default_palettes();
+			foreach ( $palettes as $id => $palette ) :
+				?>
+				<button type="button" class="palette-preset button" data-palette="<?php echo esc_attr( $id ); ?>">
+					<span class="palette-preview" style="background: <?php echo esc_attr( $palette['admin_bar']['bg_color'] ); ?>"></span>
+					<span class="palette-name"><?php echo esc_html( $palette['name'] ); ?></span>
+				</button>
+			<?php endforeach; ?>
+		</div>
+		<p class="description"><?php esc_html_e( 'Click a preset to quickly apply a professional color scheme', 'modern-admin-styler' ); ?></p>
+		
 		<!-- Admin Bar Settings -->
 		<h2><?php esc_html_e( 'Admin Bar Settings', 'modern-admin-styler' ); ?></h2>
 		<table class="form-table" role="presentation">

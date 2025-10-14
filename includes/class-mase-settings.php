@@ -205,4 +205,108 @@ class MASE_Settings {
 		
 		return false;
 	}
+
+	/**
+	 * Get default color palettes.
+	 *
+	 * @return array Array of color palettes.
+	 */
+	public function get_default_palettes() {
+		return array(
+			'default'           => array(
+				'name'       => 'WordPress Default',
+				'admin_bar'  => array(
+					'bg_color'   => '#23282d',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'          => '#23282d',
+					'text_color'        => '#ffffff',
+					'hover_bg_color'    => '#191e23',
+					'hover_text_color'  => '#00b9eb',
+				),
+			),
+			'professional_blue' => array(
+				'name'       => 'Professional Blue',
+				'admin_bar'  => array(
+					'bg_color'   => '#3B82F6',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'          => '#1E40AF',
+					'text_color'        => '#ffffff',
+					'hover_bg_color'    => '#1D4ED8',
+					'hover_text_color'  => '#E0E7FF',
+				),
+			),
+			'creative_purple'   => array(
+				'name'       => 'Creative Purple',
+				'admin_bar'  => array(
+					'bg_color'   => '#8B5CF6',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'          => '#7C3AED',
+					'text_color'        => '#ffffff',
+					'hover_bg_color'    => '#8B5CF6',
+					'hover_text_color'  => '#EDE9FE',
+				),
+			),
+			'energetic_green'   => array(
+				'name'       => 'Energetic Green',
+				'admin_bar'  => array(
+					'bg_color'   => '#10B981',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'          => '#059669',
+					'text_color'        => '#ffffff',
+					'hover_bg_color'    => '#10B981',
+					'hover_text_color'  => '#D1FAE5',
+				),
+			),
+			'warm_orange'       => array(
+				'name'       => 'Warm Orange',
+				'admin_bar'  => array(
+					'bg_color'   => '#F97316',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'          => '#EA580C',
+					'text_color'        => '#ffffff',
+					'hover_bg_color'    => '#F97316',
+					'hover_text_color'  => '#FED7AA',
+				),
+			),
+		);
+	}
+
+	/**
+	 * Apply a color palette.
+	 *
+	 * @param string $palette_id Palette ID to apply.
+	 * @return bool True on success, false on failure.
+	 */
+	public function apply_palette( $palette_id ) {
+		$palettes = $this->get_default_palettes();
+
+		if ( ! isset( $palettes[ $palette_id ] ) ) {
+			return false;
+		}
+
+		$palette          = $palettes[ $palette_id ];
+		$current_settings = $this->get_option();
+
+		// Apply palette colors to current settings.
+		$current_settings['admin_bar']  = array_merge(
+			$current_settings['admin_bar'],
+			$palette['admin_bar']
+		);
+		$current_settings['admin_menu'] = array_merge(
+			$current_settings['admin_menu'],
+			$palette['admin_menu']
+		);
+
+		return $this->update_option( $current_settings );
+	}
 }

@@ -21,6 +21,7 @@
         init: function() {
             this.initColorPickers();
             this.bindEvents();
+            this.bindPaletteEvents();
         },
         
         /**
@@ -232,6 +233,56 @@
                     func.apply(context, args);
                 }, wait);
             };
+        },
+        
+        /**
+         * Bind palette preset events
+         */
+        bindPaletteEvents: function() {
+            $('.palette-preset').on('click', this.handlePaletteClick.bind(this));
+        },
+        
+        /**
+         * Handle palette preset click
+         */
+        handlePaletteClick: function(e) {
+            e.preventDefault();
+            const paletteId = $(e.currentTarget).data('palette');
+            this.applyPalette(paletteId);
+        },
+        
+        /**
+         * Apply color palette
+         */
+        applyPalette: function(paletteId) {
+            const $button = $('.palette-preset[data-palette="' + paletteId + '"]');
+            $button.prop('disabled', true).css('opacity', '0.6');
+            
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'mase_apply_palette',
+                    nonce: $('#mase_nonce').val(),
+                    palette_id: paletteId
+                },
+                success: function(response) {
+                    if (response.success) {
+                        this.showNotice('success', response.data.message);
+                        // Reload page to show new settings
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        this.showNotice('error', response.data.message || 'Failed to apply palette');
+                        $button.prop('disabled', false).css('opacity', '1');
+                    }
+                }.bind(this),
+                error: function() {
+                    this.showNotice('error', 'Network error. Please try again.');
+                    $button.prop('disabled', false).css('opacity', '1');
+                }.bind(this)
+            });
         }
     };
     
