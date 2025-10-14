@@ -1,0 +1,145 @@
+/**
+ * Modern Admin Styler Enterprise - Admin Styles
+ *
+ * Provides styling for the settings page with accessibility and responsive design.
+ *
+ * @package MASE
+ * @since 1.0.0
+ */
+
+/* Settings page layout */
+.mase-settings-wrap {
+    max-width: 1200px;
+}
+
+/* Form elements */
+.mase-color-picker {
+    max-width: 100px;
+}
+
+.form-table th {
+    padding: 20px 10px 20px 0;
+}
+
+.form-table td {
+    padding: 15px 10px;
+}
+
+/* Accessibility - Focus indicators */
+.mase-color-picker:focus,
+.mase-input:focus,
+input[type="number"]:focus,
+input[type="checkbox"]:focus {
+    outline: 2px solid #0073aa;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 1px #0073aa;
+}
+
+/* Admin notices */
+#mase-notices {
+    margin: 15px 0;
+}
+
+#mase-notices .notice {
+    margin: 5px 0 15px;
+    padding: 12px;
+}
+
+#mase-notices .notice p {
+    margin: 0.5em 0;
+}
+
+/* Color picker styling */
+.wp-picker-container {
+    display: inline-block;
+}
+
+.wp-picker-container .wp-color-result {
+    margin-right: 10px;
+}
+
+/* Form field descriptions */
+.description {
+    color: #646970;
+    font-size: 13px;
+    font-style: italic;
+    margin-top: 5px;
+}
+
+/* Responsive design for mobile */
+@media screen and (max-width: 782px) {
+    .form-table th,
+    .form-table td {
+        display: block;
+        width: 100%;
+        padding: 10px 0;
+    }
+    
+    .form-table th {
+        padding-bottom: 5px;
+    }
+    
+    .form-table td {
+        padding-top: 5px;
+        padding-bottom: 20px;
+    }
+    
+    .mase-color-picker,
+    input[type="number"].small-text {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    /* Touch-friendly tap targets */
+    input[type="checkbox"] {
+        width: 25px;
+        height: 25px;
+    }
+    
+    .wp-picker-container .wp-color-result {
+        height: 44px;
+        width: 44px;
+    }
+}
+
+@media screen and (max-width: 600px) {
+    .wrap h1 {
+        font-size: 1.5em;
+    }
+    
+    .wrap h2 {
+        font-size: 1.2em;
+    }
+}
+
+/* Loading state */
+.mase-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Success/Error states */
+.mase-field-error {
+    border-color: #d63638 !important;
+    box-shadow: 0 0 0 1px #d63638;
+}
+
+.mase-field-success {
+    border-color: #00a32a !important;
+    box-shadow: 0 0 0 1px #00a32a;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .mase-color-picker:focus,
+    .mase-input:focus {
+        outline-width: 3px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    #mase-notices .notice {
+        transition: none;
+    }
+}

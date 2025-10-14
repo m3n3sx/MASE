@@ -95,6 +95,25 @@ MASE implements multiple security layers:
 - Page load impact: <200ms
 - Intelligent caching with WordPress transients
 
+## Testing
+
+MASE includes comprehensive testing to ensure reliability and performance.
+
+### Run Tests
+
+```bash
+cd tests
+./run-tests.sh
+```
+
+### Test Coverage
+
+- Performance tests (CSS generation speed, memory usage)
+- Integration tests (settings, caching, validation)
+- Manual testing checklist in TESTING.md
+
+See [TESTING.md](TESTING.md) for detailed testing guide.
+
 ## Changelog
 
 ### 1.0.0
@@ -103,6 +122,7 @@ MASE implements multiple security layers:
 - Admin menu styling
 - Live preview functionality
 - Performance optimization with caching
+- Comprehensive test suite
 
 ## Support
 

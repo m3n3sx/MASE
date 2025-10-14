@@ -1,0 +1,25 @@
+{
+  "enabled": true,
+  "name": "Quality Gate Enforcer",
+  "description": "Monitors code changes to enforce quality gates (test coverage, complexity limits), validate phase transitions, check architectural boundaries (feature/file/endpoint limits), and ensure code quality standards before commits",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.js",
+      "**/*.php",
+      "**/*.py",
+      "**/*.ts",
+      "**/*.jsx",
+      "**/*.tsx",
+      "**/package.json",
+      "**/composer.json",
+      "**/.phase",
+      "**/tests/**/*"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Analyze the changed files and perform the following quality gate checks:\n\n1. **Phase Control**: Verify current development phase from .phase file or project state. Ensure foundation tests pass before UI development. Block transitions if phase requirements aren't met.\n\n2. **Quality Gates**: Check if test coverage >= 80%, code complexity <= 10, and file count <= 15. Return BLOCKED status if any gate fails.\n\n3. **Architecture Boundaries**: Count features, REST endpoints, and JS modules. Warn if: features > 6, REST endpoints > 5, or JS modules > 3.\n\n4. **Before Commit Checks**: For each changed file, verify linting passes and core functionality files have tests.\n\n5. **Complexity Check**: Calculate cyclomatic complexity and file count. Warn if complexity > 10 or files > 15.\n\n6. **Feature Addition**: If new features detected, ensure feature count < 6 and core features are complete before enterprise features.\n\nProvide a structured report with:\n- ✅ Passed checks\n- ⚠️ Warnings for approaching limits\n- 🚫 BLOCKED status with specific reasons if quality gates fail\n- Actionable recommendations for any issues found"
+  }
+}
