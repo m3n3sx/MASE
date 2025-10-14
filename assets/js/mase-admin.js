@@ -22,6 +22,7 @@
             this.initColorPickers();
             this.bindEvents();
             this.bindPaletteEvents();
+            this.bindImportExportEvents();
         },
         
         /**
@@ -281,6 +282,132 @@
                 error: function() {
                     this.showNotice('error', 'Network error. Please try again.');
                     $button.prop('disabled', false).css('opacity', '1');
+                }.bind(this)
+            });
+        },
+        
+        /**
+         * Bind import/export events
+         */
+        bindImportExportEvents: function() {
+            $('#mase-export-btn').on('click', this.handleExport.bind(this));
+            $('#mase-import-btn').on('click', this.handleImportClick.bind(this));
+            $('#mase-import-file').on('change', this.handleImportFile.bind(this));
+        },
+        
+        /**
+         * Handle export button click
+         */
+        handleExport: function() {
+            const $button = $('#mase-export-btn');
+            $button.prop('disabled', true).text('Exporting...');
+            
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'mase_export_settings',
+                    nonce: $('#mase_nonce').val()
+                },
+                success: function(response) {
+                    if (response.success) {
+                        // Create download link
+                        const dataStr = JSON.stringify(response.data, null, 2);
+                        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                        const url = URL.createObjectURL(dataBlob);
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = 'mase-settings-' + Date.now() + '.json';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(url);
+                        
+                        this.showNotice('success', 'Settings exported successfully');
+                    } else {
+                        this.showNotice('error', response.data.message || 'Export failed');
+                    }
+                }.bind(this),
+                error: function() {
+                    this.showNotice('error', 'Network error during export');
+                }.bind(this),
+                complete: function() {
+                    $button.prop('disabled', false).text('Export Settings');
+                }
+            });
+        },
+        
+        /**
+         * Handle import button click
+         */
+        handleImportClick: function() {
+            $('#mase-import-file').click();
+        },
+        
+        /**
+         * Handle import file selection
+         */
+        handleImportFile: function(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                return;
+            }
+            
+            if (file.type !== 'application/json') {
+                this.showNotice('error', 'Please select a valid JSON file');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    this.importSettings(data);
+                } catch (error) {
+                    this.showNotice('error', 'Invalid JSON file format');
+                }
+            }.bind(this);
+            
+            reader.readAsText(file);
+            
+            // Reset file input
+            e.target.value = '';
+        },
+        
+        /**
+         * Import settings data
+         */
+        importSettings: function(data) {
+            if (!confirm('This will overwrite your current settings. Are you sure?')) {
+                return;
+            }
+            
+            const $button = $('#mase-import-btn');
+            $button.prop('disabled', true).text('Importing...');
+            
+            $.ajax({
+                url: ajaxurl,
+                type: 'POST',
+                data: {
+                    action: 'mase_import_settings',
+                    nonce: $('#mase_nonce').val(),
+                    settings_data: JSON.stringify(data)
+                },
+                success: function(response) {
+                    if (response.success) {
+                        this.showNotice('success', response.data.message);
+                        // Reload page to show new settings
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        this.showNotice('error', response.data.message || 'Import failed');
+                        $button.prop('disabled', false).text('Import Settings');
+                    }
+                }.bind(this),
+                error: function() {
+                    this.showNotice('error', 'Network error during import');
+                    $button.prop('disabled', false).text('Import Settings');
                 }.bind(this)
             });
         }

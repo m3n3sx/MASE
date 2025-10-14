@@ -272,5 +272,26 @@ if ( ! defined( 'WPINC' ) ) {
 		<?php submit_button( __( 'Save Settings', 'modern-admin-styler' ) ); ?>
 	</form>
 	
+	<!-- Import/Export Section -->
+	<h2><?php esc_html_e( 'Import / Export Settings', 'modern-admin-styler' ); ?></h2>
+	<div class="mase-import-export">
+		<div class="mase-export-section">
+			<h3><?php esc_html_e( 'Export Settings', 'modern-admin-styler' ); ?></h3>
+			<p class="description"><?php esc_html_e( 'Export your current settings to a JSON file. You can use this to backup your settings or share them with other sites.', 'modern-admin-styler' ); ?></p>
+			<button type="button" id="mase-export-btn" class="button button-secondary">
+				<?php esc_html_e( 'Export Settings', 'modern-admin-styler' ); ?>
+			</button>
+		</div>
+		
+		<div class="mase-import-section">
+			<h3><?php esc_html_e( 'Import Settings', 'modern-admin-styler' ); ?></h3>
+			<p class="description"><?php esc_html_e( 'Import settings from a previously exported JSON file. This will overwrite your current settings.', 'modern-admin-styler' ); ?></p>
+			<input type="file" id="mase-import-file" accept=".json" style="display: none;" />
+			<button type="button" id="mase-import-btn" class="button button-secondary">
+				<?php esc_html_e( 'Import Settings', 'modern-admin-styler' ); ?>
+			</button>
+		</div>
+	</div>
+	
 	<div id="mase-notices"></div>
 </div>

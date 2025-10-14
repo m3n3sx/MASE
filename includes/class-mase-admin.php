@@ -30,6 +30,8 @@ class MASE_Admin {
 		add_action( 'admin_head', array( $this, 'inject_custom_css' ), 999 );
 		add_action( 'wp_ajax_mase_save_settings', array( $this, 'handle_ajax_save_settings' ) );
 		add_action( 'wp_ajax_mase_apply_palette', array( $this, 'handle_ajax_apply_palette' ) );
+		add_action( 'wp_ajax_mase_export_settings', array( $this, 'handle_ajax_export_settings' ) );
+		add_action( 'wp_ajax_mase_import_settings', array( $this, 'handle_ajax_import_settings' ) );
 	}
 
 	public function add_admin_menu() {
@@ -198,6 +200,84 @@ class MASE_Admin {
 		} else {
 			wp_send_json_error( array(
 				'message' => __( 'Failed to apply palette', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX export settings request.
+	 */
+	public function handle_ajax_export_settings() {
+		// Verify nonce.
+		if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+		}
+
+		// Check user capability.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+		}
+
+		// Get current settings.
+		$settings = $this->settings->get_option();
+
+		// Prepare export data.
+		$export_data = array(
+			'plugin'      => 'MASE',
+			'version'     => '1.1.0',
+			'exported_at' => current_time( 'mysql' ),
+			'settings'    => $settings,
+		);
+
+		wp_send_json_success( $export_data );
+	}
+
+	/**
+	 * Handle AJAX import settings request.
+	 */
+	public function handle_ajax_import_settings() {
+		// Verify nonce.
+		if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+		}
+
+		// Check user capability.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+		}
+
+		// Get import data.
+		$import_data = isset( $_POST['settings_data'] ) ? wp_unslash( $_POST['settings_data'] ) : '';
+
+		if ( empty( $import_data ) ) {
+			wp_send_json_error( array( 'message' => __( 'No import data provided', 'mase' ) ) );
+		}
+
+		// Decode JSON.
+		$data = json_decode( $import_data, true );
+
+		if ( ! $data || ! isset( $data['settings'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid import data format', 'mase' ) ) );
+		}
+
+		// Validate plugin identifier.
+		if ( ! isset( $data['plugin'] ) || 'MASE' !== $data['plugin'] ) {
+			wp_send_json_error( array( 'message' => __( 'Import data is not from MASE plugin', 'mase' ) ) );
+		}
+
+		// Import settings.
+		$result = $this->settings->update_option( $data['settings'] );
+
+		if ( $result ) {
+			// Invalidate cache.
+			$this->cache->invalidate( 'generated_css' );
+
+			wp_send_json_success( array(
+				'message' => __( 'Settings imported successfully', 'mase' ),
+			) );
+		} else {
+			wp_send_json_error( array(
+				'message' => __( 'Failed to import settings', 'mase' ),
 			) );
 		}
 	}

@@ -196,3 +196,38 @@ input[type="checkbox"]:focus {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Import/Export Section */
+.mase-import-export {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.mase-export-section,
+.mase-import-section {
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+}
+
+.mase-export-section h3,
+.mase-import-section h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.mase-export-section .description,
+.mase-import-section .description {
+    margin-bottom: 15px;
+}
+
+#mase-export-btn,
+#mase-import-btn {
+    width: 100%;
+}
