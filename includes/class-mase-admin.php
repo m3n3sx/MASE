@@ -16,7 +16,7 @@ class MASE_Admin {
 	private $generator;
 	private $cache;
 
-	public function __construct( MASE_Settings $settings, MASE_CSS_Generator $generator, MASE_Cache $cache ) {
+	public function __construct( MASE_Settings $settings, MASE_CSS_Generator $generator, MASE_CacheManager $cache ) {
 		if ( ! is_admin() ) {
 			return;
 		}
@@ -82,31 +82,30 @@ class MASE_Admin {
 	/**
 	 * Inject custom CSS into admin pages.
 	 *
-	 * Checks for cached CSS first, generates new CSS if needed,
-	 * applies minification if enabled, and caches the result.
+	 * Uses advanced caching with automatic generation on cache miss.
 	 */
 	public function inject_custom_css() {
 		try {
-			// Try to get cached CSS first.
-			$css = $this->cache->get_cached_css();
+			$settings       = $this->settings->get_option();
+			$cache_duration = ! empty( $settings['performance']['cache_duration'] ) 
+				? absint( $settings['performance']['cache_duration'] ) 
+				: 3600;
 
-			// If no cache, generate CSS.
-			if ( false === $css ) {
-				$settings = $this->settings->get_option();
-				$css      = $this->generator->generate( $settings );
+			// Use advanced cache manager with automatic generation.
+			$css = $this->cache->remember(
+				'generated_css',
+				function() use ( $settings ) {
+					$css = $this->generator->generate( $settings );
 
-				// Apply minification if enabled.
-				if ( ! empty( $settings['performance']['enable_minification'] ) ) {
-					$css = $this->generator->minify( $css );
-				}
+					// Apply minification if enabled.
+					if ( ! empty( $settings['performance']['enable_minification'] ) ) {
+						$css = $this->generator->minify( $css );
+					}
 
-				// Cache the generated CSS.
-				$cache_duration = ! empty( $settings['performance']['cache_duration'] ) 
-					? absint( $settings['performance']['cache_duration'] ) 
-					: 3600;
-				
-				$this->cache->set_cached_css( $css, $cache_duration );
-			}
+					return $css;
+				},
+				$cache_duration
+			);
 
 			// Output CSS if we have any.
 			if ( ! empty( $css ) ) {
@@ -152,7 +151,7 @@ class MASE_Admin {
 
 		if ( $result ) {
 			// Invalidate cache on successful save.
-			$this->cache->invalidate_cache();
+			$this->cache->invalidate( 'generated_css' );
 
 			wp_send_json_success( array(
 				'message' => __( 'Settings saved successfully', 'mase' ),

@@ -99,8 +99,9 @@ register_activation_hook( __FILE__, 'mase_activate' );
  * @return void
  */
 function mase_deactivate() {
-	// Clean up cached CSS transient.
-	delete_transient( MASE_Cache::CACHE_KEY );
+	// Clean up all MASE caches.
+	$cache = new MASE_CacheManager();
+	$cache->clear_all();
 }
 
 // Register deactivation hook.
@@ -123,7 +124,7 @@ function mase_init() {
 	// Instantiate core classes with dependency injection.
 	$settings  = new MASE_Settings();
 	$generator = new MASE_CSS_Generator();
-	$cache     = new MASE_Cache();
+	$cache     = new MASE_CacheManager();
 	$admin     = new MASE_Admin( $settings, $generator, $cache );
 }
 
