@@ -126,6 +126,21 @@ function mase_init() {
 	$generator = new MASE_CSS_Generator();
 	$cache     = new MASE_CacheManager();
 	$admin     = new MASE_Admin( $settings, $generator, $cache );
+	
+	// Initialize mobile optimizer (Requirement 16.1, 16.4).
+	$mobile_optimizer = new MASE_Mobile_Optimizer();
+	
+	// Display degradation notice if applicable (Requirement 16.4).
+	add_action( 'admin_notices', array( $mobile_optimizer, 'display_degradation_notice' ) );
+	
+	// Enqueue detection script (Requirement 16.1).
+	add_action( 'admin_enqueue_scripts', array( $mobile_optimizer, 'enqueue_detection_script' ) );
+	
+	// Register AJAX handler for low-power detection (Requirement 16.1).
+	add_action( 'wp_ajax_mase_store_low_power_detection', array( $mobile_optimizer, 'handle_store_low_power_detection' ) );
+	
+	// Register AJAX handler for device capabilities reporting.
+	add_action( 'wp_ajax_mase_report_device_capabilities', array( $mobile_optimizer, 'handle_report_device_capabilities' ) );
 }
 
 // Hook into plugins_loaded to initialize the plugin.

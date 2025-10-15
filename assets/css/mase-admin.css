@@ -25,14 +25,24 @@
     padding: 15px 10px;
 }
 
-/* Accessibility - Focus indicators */
+/* Accessibility - Focus indicators (Requirement 30.4) */
 .mase-color-picker:focus,
 .mase-input:focus,
 input[type="number"]:focus,
-input[type="checkbox"]:focus {
+input[type="checkbox"]:focus,
+button:focus,
+.button:focus,
+.palette-preset:focus {
     outline: 2px solid #0073aa;
     outline-offset: 2px;
     box-shadow: 0 0 0 1px #0073aa;
+}
+
+/* Enhanced focus for keyboard navigation */
+input[type="submit"]:focus,
+.submit-button:focus {
+    outline: 3px solid #0073aa;
+    outline-offset: 3px;
 }
 
 /* Admin notices */
@@ -66,7 +76,7 @@ input[type="checkbox"]:focus {
     margin-top: 5px;
 }
 
-/* Responsive design for mobile */
+/* Responsive design for mobile (Requirements 29.1, 29.2, 29.3) */
 @media screen and (max-width: 782px) {
     .form-table th,
     .form-table td {
@@ -90,15 +100,36 @@ input[type="checkbox"]:focus {
         max-width: 300px;
     }
     
-    /* Touch-friendly tap targets */
+    /* Touch-friendly tap targets (Requirement 29.3) - Minimum 44px */
     input[type="checkbox"] {
         width: 25px;
         height: 25px;
+        min-width: 44px;
+        min-height: 44px;
     }
     
     .wp-picker-container .wp-color-result {
         height: 44px;
         width: 44px;
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Touch-friendly buttons */
+    .button,
+    input[type="submit"],
+    .palette-preset {
+        min-height: 44px;
+        padding: 12px 16px;
+        font-size: 16px;
+    }
+    
+    /* Ensure form inputs are touch-friendly */
+    input[type="text"],
+    input[type="number"] {
+        min-height: 44px;
+        font-size: 16px;
+        padding: 8px 12px;
     }
 }
 
@@ -110,6 +141,16 @@ input[type="checkbox"]:focus {
     .wrap h2 {
         font-size: 1.2em;
     }
+    
+    /* Stack import/export sections on very small screens */
+    .mase-import-export {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Ensure palette grid is single column */
+    .palette-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Loading state */
@@ -119,7 +160,9 @@ input[type="checkbox"]:focus {
 }
 
 /* Success/Error states */
-.mase-field-error {
+.mase-field-error,
+.mase-input.error,
+input.error {
     border-color: #d63638 !important;
     box-shadow: 0 0 0 1px #d63638;
 }
@@ -127,6 +170,14 @@ input[type="checkbox"]:focus {
 .mase-field-success {
     border-color: #00a32a !important;
     box-shadow: 0 0 0 1px #00a32a;
+}
+
+.mase-error-message {
+    color: #dc3232;
+    display: block;
+    margin-top: 5px;
+    font-size: 13px;
+    font-weight: 500;
 }
 
 /* High contrast mode support */
