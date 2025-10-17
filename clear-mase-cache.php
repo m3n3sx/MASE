@@ -6,7 +6,7 @@
  */
 
 // Load WordPress.
-require_once __DIR__ . '/../../../wp-load.php';
+require_once __DIR__ . '/../../wp-load.php';
 
 // Load MASE cache class.
 require_once __DIR__ . '/includes/class-mase-cache.php';
