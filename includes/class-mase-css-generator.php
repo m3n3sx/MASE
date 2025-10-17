@@ -918,9 +918,10 @@ class MASE_CSS_Generator {
 		// Add comment for fallback section (removed in minification).
 		$css .= '/* Browser fallbacks for IE11 and older browsers */';
 
-		// Flexbox fallback for older browsers - REMOVED to prevent horizontal menu layout.
-		// WordPress core already handles #adminmenu display properly.
-		// Adding display:flex without flex-direction:column causes horizontal layout bug.
+		// Force vertical menu layout - prevent horizontal display bug.
+		$css .= 'body.wp-admin #adminmenu{';
+		$css .= 'display:block !important;'; // Maintain WordPress default vertical layout.
+		$css .= '}';
 
 		// Box-sizing fallback for older browsers.
 		$css .= 'body.wp-admin #adminmenu li.menu-top > a,';
