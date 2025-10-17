@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "wordpress_mas6": {
+      "command": "npx",
+      "args": ["@automattic/mcp-wordpress-remote"],
+      "env": {
+        "WP_API_URL": "https://your-test-site.com/wp-json",
+        "WP_USERNAME": "admin",
+        "WP_PASSWORD": "your_app_password_here"
+      },
+      "autoApprove": [
+        "wordpress_list_plugins",
+        "wordpress_get_settings",
+        "wordpress_list_pages"
+      ]
+    }
+  }
+}

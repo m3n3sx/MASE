@@ -1,0 +1,348 @@
+/**
+ * Code Editor Styles
+ * Styling for the Monaco Editor integration and fallback textarea
+ */
+
+.code-editor-container {
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #1e1e1e;
+    min-height: 300px;
+}
+
+.code-editor-container.light-theme {
+    background: #ffffff;
+    border-color: #e1e1e1;
+}
+
+/* Monaco Editor specific styles */
+.monaco-editor {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+}
+
+.monaco-editor .margin {
+    background-color: #1e1e1e !important;
+}
+
+.monaco-editor.vs .margin {
+    background-color: #f8f8f8 !important;
+}
+
+/* Custom scrollbar for Monaco */
+.monaco-editor .monaco-scrollable-element > .scrollbar > .slider {
+    background: rgba(121, 121, 121, 0.4) !important;
+}
+
+.monaco-editor .monaco-scrollable-element > .scrollbar > .slider:hover {
+    background: rgba(121, 121, 121, 0.7) !important;
+}
+
+/* Code editor toolbar */
+.code-editor-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #2d2d30;
+    border-bottom: 1px solid #3e3e42;
+    color: #cccccc;
+    font-size: 12px;
+}
+
+.code-editor-toolbar.light-theme {
+    background: #f3f3f3;
+    border-bottom-color: #e1e1e1;
+    color: #333333;
+}
+
+.code-editor-toolbar-left,
+.code-editor-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Language selector */
+.code-editor-language-selector {
+    background: transparent;
+    border: 1px solid #3e3e42;
+    color: #cccccc;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.code-editor-language-selector:hover {
+    border-color: #007acc;
+}
+
+.code-editor-language-selector:focus {
+    outline: none;
+    border-color: #007acc;
+    box-shadow: 0 0 0 1px #007acc;
+}
+
+.light-theme .code-editor-language-selector {
+    border-color: #d1d1d1;
+    color: #333333;
+}
+
+.light-theme .code-editor-language-selector:hover {
+    border-color: #0078d4;
+}
+
+/* Theme toggle button */
+.code-editor-theme-toggle {
+    background: transparent;
+    border: 1px solid #3e3e42;
+    color: #cccccc;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.code-editor-theme-toggle:hover {
+    border-color: #007acc;
+    background: rgba(0, 122, 204, 0.1);
+}
+
+.light-theme .code-editor-theme-toggle {
+    border-color: #d1d1d1;
+    color: #333333;
+}
+
+.light-theme .code-editor-theme-toggle:hover {
+    border-color: #0078d4;
+    background: rgba(0, 120, 212, 0.1);
+}
+
+/* Status indicators */
+.code-editor-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+}
+
+.code-editor-status-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.code-editor-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #28a745;
+}
+
+.code-editor-status-indicator.warning {
+    background: #ffc107;
+}
+
+.code-editor-status-indicator.error {
+    background: #dc3545;
+}
+
+/* Validation messages */
+.code-editor-validation {
+    padding: 8px 12px;
+    background: #2d2d30;
+    border-top: 1px solid #3e3e42;
+    color: #cccccc;
+    font-size: 12px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.code-editor-validation.light-theme {
+    background: #f8f8f8;
+    border-top-color: #e1e1e1;
+    color: #333333;
+}
+
+.code-editor-validation-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.light-theme .code-editor-validation-message {
+    border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+
+.code-editor-validation-message:last-child {
+    border-bottom: none;
+}
+
+.code-editor-validation-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.code-editor-validation-icon.error {
+    background: #dc3545;
+}
+
+.code-editor-validation-icon.warning {
+    background: #ffc107;
+    color: #333;
+}
+
+.code-editor-validation-icon.info {
+    background: #17a2b8;
+}
+
+.code-editor-validation-content {
+    flex: 1;
+}
+
+.code-editor-validation-title {
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.code-editor-validation-description {
+    opacity: 0.8;
+    font-size: 11px;
+}
+
+/* Fallback textarea styles */
+.code-editor-fallback {
+    width: 100%;
+    height: 400px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    border: none;
+    padding: 12px;
+    resize: vertical;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    outline: none;
+}
+
+.light-theme .code-editor-fallback {
+    background: #ffffff;
+    color: #333333;
+}
+
+/* Loading state */
+.code-editor-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 300px;
+    background: #1e1e1e;
+    color: #cccccc;
+    font-size: 14px;
+}
+
+.code-editor-loading.light-theme {
+    background: #ffffff;
+    color: #333333;
+}
+
+.code-editor-loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #3e3e42;
+    border-top: 2px solid #007acc;
+    border-radius: 50%;
+    animation: code-editor-spin 1s linear infinite;
+    margin-right: 12px;
+}
+
+@keyframes code-editor-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .code-editor-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .code-editor-toolbar-left,
+    .code-editor-toolbar-right {
+        justify-content: space-between;
+    }
+    
+    .code-editor-container {
+        min-height: 250px;
+    }
+    
+    .code-editor-fallback {
+        height: 250px;
+        font-size: 12px;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .code-editor-container {
+        border-width: 2px;
+        border-color: #000000;
+    }
+    
+    .code-editor-toolbar {
+        border-bottom-width: 2px;
+    }
+    
+    .code-editor-language-selector,
+    .code-editor-theme-toggle {
+        border-width: 2px;
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .code-editor-loading-spinner {
+        animation: none;
+    }
+    
+    .code-editor-theme-toggle,
+    .code-editor-language-selector {
+        transition: none;
+    }
+}
+
+/* Print styles */
+@media print {
+    .code-editor-toolbar,
+    .code-editor-validation {
+        display: none;
+    }
+    
+    .code-editor-container {
+        border: 1px solid #000;
+        background: white;
+    }
+    
+    .monaco-editor {
+        background: white !important;
+        color: black !important;
+    }
+}

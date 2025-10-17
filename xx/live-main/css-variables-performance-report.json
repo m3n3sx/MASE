@@ -1,0 +1,75 @@
+{
+  "metadata": {
+    "timestamp": "2025-08-04T13:33:27.867Z",
+    "iterations": 5,
+    "duration": 1003,
+    "nodeVersion": "v22.17.1",
+    "platform": "linux"
+  },
+  "summary": {
+    "totalTests": 5,
+    "passedTests": 5,
+    "failedTests": 0,
+    "successRate": "100.0",
+    "overallStatus": "passed"
+  },
+  "performance": {
+    "duration": {
+      "min": 90,
+      "max": 230,
+      "avg": 145.8,
+      "median": 123,
+      "p95": 230,
+      "p99": 230
+    },
+    "score": {
+      "min": 100,
+      "max": 100,
+      "avg": 100
+    },
+    "consistency": 62.23745691128898
+  },
+  "thresholds": {
+    "immediate": {
+      "threshold": 50,
+      "avg": "1.00",
+      "min": "1.00",
+      "max": "1.00",
+      "passed": 1,
+      "total": 1,
+      "passRate": "100.0",
+      "status": "passed"
+    },
+    "database": {
+      "threshold": 2000,
+      "avg": "145.20",
+      "min": "89.00",
+      "max": "230.00",
+      "passed": 5,
+      "total": 5,
+      "passRate": "100.0",
+      "status": "passed"
+    },
+    "total": {
+      "threshold": 2500,
+      "avg": "145.80",
+      "min": "90.00",
+      "max": "230.00",
+      "passed": 5,
+      "total": 5,
+      "passRate": "100.0",
+      "status": "passed"
+    }
+  },
+  "benchmark": null,
+  "regression": null,
+  "rawResults": null,
+  "recommendations": [
+    {
+      "type": "info",
+      "category": "consistency",
+      "message": "Performance consistency is 62.2% (target: >80%)",
+      "suggestion": "Investigate sources of performance variability and implement stabilization measures"
+    }
+  ]
+}

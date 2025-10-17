@@ -1,0 +1,399 @@
+/**
+ * MAS V2 Plugin UI Styling
+ * Modern, clean interface for settings page
+ */
+
+/* Settings Page Container */
+.mas-v2-settings-page {
+    max-width: 1400px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+/* Modern Card Design */
+.mas-v2-card {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 24px;
+    margin-bottom: 20px;
+    transition: box-shadow 0.3s ease;
+}
+
+.mas-v2-card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.mas-v2-card h2 {
+    margin: 0 0 20px 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1d2327;
+    border-bottom: 2px solid #0073aa;
+    padding-bottom: 12px;
+}
+
+/* Field Groups */
+.mas-v2-field-group {
+    margin-bottom: 24px;
+}
+
+.mas-v2-field-group:last-child {
+    margin-bottom: 0;
+}
+
+.mas-v2-field-label {
+    display: block;
+    font-weight: 600;
+    color: #1d2327;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.mas-v2-field-description {
+    color: #646970;
+    font-size: 13px;
+    margin-top: 6px;
+    line-height: 1.5;
+}
+
+/* Input Fields */
+.mas-v2-input,
+.mas-v2-select {
+    width: 100%;
+    max-width: 400px;
+    padding: 8px 12px;
+    border: 1px solid #8c8f94;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.mas-v2-input:focus,
+.mas-v2-select:focus {
+    border-color: #0073aa;
+    outline: none;
+    box-shadow: 0 0 0 1px #0073aa;
+}
+
+/* Color Picker */
+.mas-v2-color-wrapper {
+    display: inline-block;
+}
+
+.mas-v2-color {
+    width: 100px;
+}
+
+/* Range Slider */
+.mas-v2-range-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.mas-v2-range {
+    flex: 1;
+    max-width: 300px;
+}
+
+.mas-v2-range-value {
+    min-width: 60px;
+    padding: 6px 12px;
+    background: #f0f0f1;
+    border-radius: 4px;
+    font-weight: 600;
+    text-align: center;
+    font-size: 13px;
+}
+
+/* Checkbox/Toggle */
+.mas-v2-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mas-v2-checkbox input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+/* Buttons */
+.mas-v2-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mas-v2-button-primary {
+    background: #0073aa;
+    color: #fff;
+}
+
+.mas-v2-button-primary:hover {
+    background: #005a87;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,115,170,0.3);
+}
+
+.mas-v2-button-secondary {
+    background: #f0f0f1;
+    color: #2c3338;
+}
+
+.mas-v2-button-secondary:hover {
+    background: #dcdcde;
+}
+
+.mas-v2-button-danger {
+    background: #dc3232;
+    color: #fff;
+}
+
+.mas-v2-button-danger:hover {
+    background: #b32d2e;
+}
+
+/* Tabs */
+.mas-v2-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 24px;
+    border-bottom: 2px solid #dcdcde;
+    flex-wrap: wrap;
+}
+
+.mas-v2-tab {
+    padding: 12px 20px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: #646970;
+    transition: all 0.2s ease;
+    margin-bottom: -2px;
+}
+
+.mas-v2-tab:hover {
+    color: #0073aa;
+    background: #f6f7f7;
+}
+
+.mas-v2-tab.active {
+    color: #0073aa;
+    border-bottom-color: #0073aa;
+    font-weight: 600;
+}
+
+/* Grid Layout */
+.mas-v2-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.mas-v2-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.mas-v2-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Status Badge */
+.mas-v2-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.mas-v2-badge-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.mas-v2-badge-warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.mas-v2-badge-error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.mas-v2-badge-info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+/* Notice/Alert */
+.mas-v2-notice {
+    padding: 12px 16px;
+    border-left: 4px solid;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.mas-v2-notice-success {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.mas-v2-notice-warning {
+    background: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.mas-v2-notice-error {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.mas-v2-notice-info {
+    background: #d1ecf1;
+    border-color: #17a2b8;
+    color: #0c5460;
+}
+
+/* Loading Spinner */
+.mas-v2-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0,0,0,0.1);
+    border-top-color: #0073aa;
+    border-radius: 50%;
+    animation: mas-spin 0.8s linear infinite;
+}
+
+@keyframes mas-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Tooltip */
+.mas-v2-tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+}
+
+.mas-v2-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    background: #1d2327;
+    color: #fff;
+    font-size: 12px;
+    white-space: nowrap;
+    border-radius: 4px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    margin-bottom: 8px;
+}
+
+.mas-v2-tooltip:hover::after {
+    opacity: 1;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .mas-v2-grid,
+    .mas-v2-grid-2,
+    .mas-v2-grid-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .mas-v2-tabs {
+        flex-direction: column;
+    }
+    
+    .mas-v2-tab {
+        text-align: left;
+        border-bottom: none;
+        border-left: 3px solid transparent;
+        margin-bottom: 0;
+        margin-left: -2px;
+    }
+    
+    .mas-v2-tab.active {
+        border-left-color: #0073aa;
+        border-bottom-color: transparent;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .mas-v2-card {
+        background: #1d2327;
+        color: #f0f0f1;
+    }
+    
+    .mas-v2-card h2 {
+        color: #f0f0f1;
+    }
+    
+    .mas-v2-input,
+    .mas-v2-select {
+        background: #2c3338;
+        border-color: #50575e;
+        color: #f0f0f1;
+    }
+    
+    .mas-v2-range-value {
+        background: #2c3338;
+        color: #f0f0f1;
+    }
+}
+
+/* Animation Utilities */
+.mas-v2-fade-in {
+    animation: mas-fade-in 0.3s ease;
+}
+
+@keyframes mas-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.mas-v2-slide-in {
+    animation: mas-slide-in 0.3s ease;
+}
+
+@keyframes mas-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}

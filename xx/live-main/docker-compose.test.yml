@@ -1,0 +1,193 @@
+version: '3.8'
+
+services:
+  # WordPress test instance
+  wordpress-test:
+    image: wordpress:6.4-php8.2-apache
+    container_name: woow-test-wordpress
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: mysql-test
+      WORDPRESS_DB_USER: wordpress_test
+      WORDPRESS_DB_PASSWORD: test_password_123
+      WORDPRESS_DB_NAME: wordpress_test
+      WORDPRESS_DEBUG: 1
+      WORDPRESS_DEBUG_LOG: 1
+      WORDPRESS_DEBUG_DISPLAY: 0
+    volumes:
+      - ./:/var/www/html/wp-content/plugins/woow-admin-styler
+      - wordpress_test_data:/var/www/html
+      - ./tests/wordpress-config/wp-config-test.php:/var/www/html/wp-config.php
+      - ./tests/wordpress-config/test-uploads:/var/www/html/wp-content/uploads
+    depends_on:
+      mysql-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    networks:
+      - woow-test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/wp-admin/admin-ajax.php"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # MySQL test database
+  mysql-test:
+    image: mysql:8.0
+    container_name: woow-test-mysql
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: wordpress_test
+      MYSQL_USER: wordpress_test
+      MYSQL_PASSWORD: test_password_123
+      MYSQL_ROOT_PASSWORD: root_test_password_123
+      MYSQL_ALLOW_EMPTY_PASSWORD: 0
+    volumes:
+      - mysql_test_data:/var/lib/mysql
+      - ./tests/database/init:/docker-entrypoint-initdb.d
+      - ./tests/database/config/my.cnf:/etc/mysql/conf.d/custom.cnf
+    networks:
+      - woow-test-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "wordpress_test", "-ptest_password_123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Redis test cache
+  redis-test:
+    image: redis:7.2-alpine
+    container_name: woow-test-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly yes --requirepass test_redis_password_123
+    volumes:
+      - redis_test_data:/data
+      - ./tests/redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - woow-test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "test_redis_password_123", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Selenium Grid Hub for cross-browser testing
+  selenium-hub:
+    image: selenium/hub:4.15.0
+    container_name: woow-test-selenium-hub
+    ports:
+      - "4444:4444"
+      - "4442:4442"
+      - "4443:4443"
+    environment:
+      GRID_MAX_SESSION: 16
+      GRID_BROWSER_TIMEOUT: 300
+      GRID_TIMEOUT: 300
+    networks:
+      - woow-test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4444/wd/hub/status"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # Chrome browser node
+  chrome-test:
+    image: selenium/node-chrome:4.15.0
+    container_name: woow-test-chrome
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      HUB_HOST: selenium-hub
+      HUB_PORT: 4444
+      NODE_MAX_INSTANCES: 4
+      NODE_MAX_SESSION: 4
+    volumes:
+      - /dev/shm:/dev/shm
+    networks:
+      - woow-test-network
+
+  # Firefox browser node
+  firefox-test:
+    image: selenium/node-firefox:4.15.0
+    container_name: woow-test-firefox
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      HUB_HOST: selenium-hub
+      HUB_PORT: 4444
+      NODE_MAX_INSTANCES: 4
+      NODE_MAX_SESSION: 4
+    volumes:
+      - /dev/shm:/dev/shm
+    networks:
+      - woow-test-network
+
+  # Edge browser node
+  edge-test:
+    image: selenium/node-edge:4.15.0
+    container_name: woow-test-edge
+    shm_size: 2gb
+    depends_on:
+      - selenium-hub
+    environment:
+      HUB_HOST: selenium-hub
+      HUB_PORT: 4444
+      NODE_MAX_INSTANCES: 4
+      NODE_MAX_SESSION: 4
+    volumes:
+      - /dev/shm:/dev/shm
+    networks:
+      - woow-test-network
+
+  # Test environment manager service
+  test-manager:
+    build:
+      context: ./tests/docker
+      dockerfile: Dockerfile.test-manager
+    container_name: woow-test-manager
+    volumes:
+      - ./tests:/app/tests
+      - ./:/app/plugin
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WORDPRESS_URL: http://wordpress-test
+      MYSQL_HOST: mysql-test
+      REDIS_HOST: redis-test
+      SELENIUM_HUB_URL: http://selenium-hub:4444
+    networks:
+      - woow-test-network
+    depends_on:
+      wordpress-test:
+        condition: service_healthy
+      mysql-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+
+volumes:
+  wordpress_test_data:
+    driver: local
+  mysql_test_data:
+    driver: local
+  redis_test_data:
+    driver: local
+
+networks:
+  woow-test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

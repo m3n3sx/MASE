@@ -1,0 +1,21 @@
+{
+  "include": [
+    "assets/js/**/*.js"
+  ],
+  "exclude": [
+    "**/*.test.js",
+    "**/*.spec.js",
+    "**/legacy/**",
+    "**/dist/**",
+    "**/node_modules/**"
+  ],
+  "reporter": [
+    "json",
+    "html",
+    "text-summary"
+  ],
+  "report-dir": "tests/coverage/reports",
+  "cache": false,
+  "all": true,
+  "check-coverage": false
+}

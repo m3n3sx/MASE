@@ -1,0 +1,550 @@
+name: WOOW Admin Styler - Comprehensive Persistence Testing
+
+on:
+  push:
+    branches: [ main, develop, 'feature/*', 'bugfix/*' ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - e2e
+          - performance
+          - stress
+          - regression
+          - cross-browser
+      browser_matrix:
+        description: 'Browser matrix'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - chrome-only
+          - firefox-only
+          - webkit-only
+
+env:
+  NODE_VERSION: '18'
+  PLAYWRIGHT_VERSION: '1.40.0'
+  TEST_TIMEOUT: 1800000  # 30 minutes
+  WOOW_TEST_ENVIRONMENT: 'ci'
+  WOOW_TEST_BASE_URL: 'http://localhost:8080'
+
+jobs:
+  # Environment setup and validation
+  setup:
+    name: Setup Test Environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      test-matrix: ${{ steps.matrix.outputs.matrix }}
+      cache-key: ${{ steps.cache-key.outputs.key }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Generate cache key
+        id: cache-key
+        run: |
+          echo "key=test-deps-${{ runner.os }}-${{ hashFiles('package-lock.json', 'docker-compose.test.yml') }}" >> $GITHUB_OUTPUT
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: ${{ steps.cache-key.outputs.key }}
+          restore-keys: |
+            test-deps-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Generate test matrix
+        id: matrix
+        run: |
+          if [ "${{ github.event.inputs.browser_matrix }}" = "chrome-only" ]; then
+            echo 'matrix={"browser":["chromium"]}' >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.browser_matrix }}" = "firefox-only" ]; then
+            echo 'matrix={"browser":["firefox"]}' >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.browser_matrix }}" = "webkit-only" ]; then
+            echo 'matrix={"browser":["webkit"]}' >> $GITHUB_OUTPUT
+          else
+            echo 'matrix={"browser":["chromium","firefox","webkit","edge"]}' >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate test environment configuration
+        run: |
+          echo "🔍 Validating test configuration..."
+          node -e "
+            const config = require('./tests/config/playwright.config.js');
+            console.log('✅ Playwright config loaded successfully');
+            console.log('Projects:', config.projects?.length || 0);
+          "
+
+  # Docker test environment setup
+  docker-setup:
+    name: Setup Docker Test Environment
+    runs-on: ubuntu-latest
+    needs: setup
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Start test environment
+        run: |
+          echo "🚀 Starting Docker test environment..."
+          chmod +x tests/scripts/test-environment-manager.sh
+          ./tests/scripts/test-environment-manager.sh setup
+
+      - name: Wait for services to be ready
+        run: |
+          echo "⏳ Waiting for services to be ready..."
+          timeout 300 bash -c 'until curl -f http://localhost:8080/wp-admin/admin-ajax.php; do sleep 5; done'
+          echo "✅ WordPress is ready"
+
+      - name: Verify test environment health
+        run: |
+          ./tests/scripts/test-environment-manager.sh health
+          ./tests/scripts/test-environment-manager.sh status
+
+      - name: Export Docker logs
+        if: failure()
+        run: |
+          mkdir -p test-artifacts/docker-logs
+          docker-compose -f docker-compose.test.yml logs > test-artifacts/docker-logs/docker-compose.log
+          docker ps -a > test-artifacts/docker-logs/containers.log
+
+      - name: Upload Docker artifacts
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-setup-artifacts
+          path: test-artifacts/
+
+  # E2E Testing
+  e2e-tests:
+    name: E2E Tests (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    needs: [setup, docker-setup]
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'e2e' || github.event.inputs.test_suite == '' }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup.outputs.test-matrix) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Start test environment
+        run: |
+          chmod +x tests/scripts/test-environment-manager.sh
+          ./tests/scripts/test-environment-manager.sh setup
+
+      - name: Run E2E tests
+        run: |
+          echo "🧪 Running E2E tests for ${{ matrix.browser }}..."
+          npx playwright test --project=${{ matrix.browser }} --reporter=html,json,junit
+        env:
+          BROWSER: ${{ matrix.browser }}
+          CI: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-results-${{ matrix.browser }}
+          path: |
+            test-results/
+            tests/screenshots/
+            tests/videos/
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: e2e-report-${{ matrix.browser }}
+          path: playwright-report/
+
+  # Performance Testing
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [setup, docker-setup]
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'performance' || github.event.inputs.test_suite == '' }}
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Start test environment
+        run: |
+          chmod +x tests/scripts/test-environment-manager.sh
+          ./tests/scripts/test-environment-manager.sh setup
+
+      - name: Run performance tests
+        run: |
+          echo "📊 Running performance tests..."
+          npm run test:performance
+        env:
+          CI: true
+          PERFORMANCE_BASELINE_UPDATE: false
+
+      - name: Analyze performance regression
+        run: |
+          echo "📈 Analyzing performance regression..."
+          npm run analyze:performance-regression
+
+      - name: Upload performance results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: |
+            tests/performance/
+            tests/reports/performance/
+
+  # Stress Testing
+  stress-tests:
+    name: Stress Tests
+    runs-on: ubuntu-latest
+    needs: [setup, docker-setup]
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'stress' || github.event.inputs.test_suite == '' }}
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Start test environment
+        run: |
+          chmod +x tests/scripts/test-environment-manager.sh
+          ./tests/scripts/test-environment-manager.sh setup
+
+      - name: Run stress tests
+        run: |
+          echo "💪 Running stress tests..."
+          npm run test:stress
+        env:
+          CI: true
+          STRESS_TEST_DURATION: 300000  # 5 minutes for CI
+
+      - name: Upload stress test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: stress-test-results
+          path: |
+            tests/stress/
+            tests/reports/stress/
+
+  # Regression Testing
+  regression-tests:
+    name: Regression Tests
+    runs-on: ubuntu-latest
+    needs: [setup, docker-setup]
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'regression' || github.event.inputs.test_suite == '' }}
+    timeout-minutes: 25
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Start test environment
+        run: |
+          chmod +x tests/scripts/test-environment-manager.sh
+          ./tests/scripts/test-environment-manager.sh setup
+
+      - name: Run regression tests
+        run: |
+          echo "🐛 Running regression tests..."
+          npm run test:regression
+        env:
+          CI: true
+
+      - name: Upload regression test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: regression-test-results
+          path: |
+            tests/regression/
+            tests/reports/regression/
+
+  # Cross-browser Testing
+  cross-browser-tests:
+    name: Cross-Browser Tests
+    runs-on: ubuntu-latest
+    needs: [setup, docker-setup]
+    if: ${{ github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'cross-browser' || github.event.inputs.test_suite == '' }}
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Restore dependencies cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.cache/ms-playwright
+          key: ${{ needs.setup.outputs.cache-key }}
+
+      - name: Start test environment
+        run: |
+          chmod +x tests/scripts/test-environment-manager.sh
+          ./tests/scripts/test-environment-manager.sh setup
+
+      - name: Run cross-browser tests
+        run: |
+          echo "🌐 Running cross-browser tests..."
+          npm run test:cross-browser
+        env:
+          CI: true
+
+      - name: Upload cross-browser results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: cross-browser-results
+          path: |
+            tests/cross-browser/
+            tests/reports/cross-browser/
+
+  # Test Results Aggregation and Reporting
+  aggregate-results:
+    name: Aggregate Test Results
+    runs-on: ubuntu-latest
+    needs: [e2e-tests, performance-tests, stress-tests, regression-tests, cross-browser-tests]
+    if: always()
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download all test artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: test-artifacts/
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Aggregate test results
+        run: |
+          echo "📊 Aggregating test results..."
+          node tests/scripts/aggregate-results.js
+        env:
+          ARTIFACTS_PATH: test-artifacts/
+
+      - name: Generate comprehensive report
+        run: |
+          echo "📋 Generating comprehensive report..."
+          node tests/scripts/generate-report.js
+
+      - name: Check for performance regressions
+        run: |
+          echo "📈 Checking for performance regressions..."
+          if [ -f "test-artifacts/performance-results/regression-detected.json" ]; then
+            echo "❌ Performance regression detected!"
+            cat test-artifacts/performance-results/regression-detected.json
+            exit 1
+          else
+            echo "✅ No performance regressions detected"
+          fi
+
+      - name: Upload comprehensive report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: comprehensive-test-report
+          path: |
+            tests/reports/comprehensive/
+            tests/test-results/aggregated-results.json
+
+      - name: Comment PR with test results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'tests/test-results/aggregated-results.json';
+            
+            if (fs.existsSync(path)) {
+              const results = JSON.parse(fs.readFileSync(path, 'utf8'));
+              const passRate = results.summary.totalTests > 0 
+                ? ((results.summary.passedTests / results.summary.totalTests) * 100).toFixed(2)
+                : 0;
+              
+              const comment = `## 🧪 Test Results Summary
+              
+              - **Total Tests**: ${results.summary.totalTests}
+              - **Passed**: ${results.summary.passedTests}
+              - **Failed**: ${results.summary.failedTests}
+              - **Pass Rate**: ${passRate}%
+              - **Execution Time**: ${Math.round(results.summary.executionTime / 1000)}s
+              
+              ${results.summary.failedTests > 0 ? '❌ Some tests failed. Please check the detailed report.' : '✅ All tests passed!'}
+              
+              [View detailed report](${context.payload.pull_request.html_url}/checks)`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+
+  # Cleanup
+  cleanup:
+    name: Cleanup Test Environment
+    runs-on: ubuntu-latest
+    needs: [aggregate-results]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cleanup Docker environment
+        run: |
+          echo "🧹 Cleaning up Docker environment..."
+          docker-compose -f docker-compose.test.yml down --volumes --remove-orphans || true
+          docker system prune -f || true
+
+      - name: Cleanup test artifacts
+        run: |
+          echo "🗑️ Cleaning up test artifacts..."
+          rm -rf test-artifacts/ || true
+          rm -rf tests/temp/ || true
+
+# Workflow completion notification
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [aggregate-results]
+    if: always() && (github.ref == 'refs/heads/main' || github.event_name == 'schedule')
+    
+    steps:
+      - name: Notify on success
+        if: needs.aggregate-results.result == 'success'
+        run: |
+          echo "✅ All persistence tests passed successfully!"
+          # Add notification logic here (Slack, email, etc.)
+
+      - name: Notify on failure
+        if: needs.aggregate-results.result == 'failure'
+        run: |
+          echo "❌ Persistence tests failed!"
+          # Add notification logic here (Slack, email, etc.)
+          exit 1

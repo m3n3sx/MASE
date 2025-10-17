@@ -1,0 +1,319 @@
+/**
+ * 🎯 Layout Manager Styles
+ * 
+ * Styles for the advanced drag & drop layout system
+ * including grid overlay, alignment guides, and drag states
+ */
+
+/* Draggable Elements */
+.woow-draggable-ready {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.woow-draggable-ready:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.woow-dragging {
+    opacity: 0.5;
+    transform: scale(0.95);
+    pointer-events: none;
+    z-index: 1000;
+}
+
+/* Drag Handle */
+.woow-drag-handle {
+    background: rgba(0,123,255,0.1) !important;
+    border: 1px solid rgba(0,123,255,0.2);
+    color: #007cba !important;
+    font-weight: bold;
+}
+
+.woow-drag-handle:hover {
+    background: rgba(0,123,255,0.2) !important;
+    border-color: rgba(0,123,255,0.4);
+}
+
+/* Ghost Element */
+.woow-ghost-element {
+    border: 2px dashed #007cba;
+    background: rgba(0,123,255,0.1);
+    border-radius: 4px;
+}
+
+/* Drop Zones */
+.woow-drop-zone-available {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.woow-drop-zone-available::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 2px dashed rgba(0,123,255,0.3);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.woow-drop-zone-active {
+    background: rgba(0,123,255,0.05);
+}
+
+.woow-drop-zone-active::before {
+    border-color: #007cba;
+    border-style: solid;
+    background: rgba(0,123,255,0.1);
+}
+
+/* Grid Overlay */
+.woow-grid-overlay {
+    background-image: 
+        linear-gradient(to right, rgba(0,123,255,0.15) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0,123,255,0.15) 1px, transparent 1px);
+}
+
+/* Alignment Guides */
+.woow-alignment-guide {
+    box-shadow: 0 0 3px rgba(255,0,0,0.5);
+}
+
+.woow-vertical-guide {
+    left: 0;
+}
+
+.woow-horizontal-guide {
+    top: 0;
+}
+
+/* Drag Active State */
+.woow-drag-active {
+    cursor: grabbing !important;
+    user-select: none;
+}
+
+.woow-drag-active * {
+    cursor: grabbing !important;
+}
+
+/* WordPress Admin Menu Specific Styles */
+#adminmenu .woow-draggable-ready {
+    position: relative;
+}
+
+#adminmenu .woow-drag-handle {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    border-radius: 2px;
+}
+
+#adminmenu li.woow-dragging {
+    background: rgba(0,123,255,0.1);
+    border-left: 3px solid #007cba;
+}
+
+/* Widget Specific Styles */
+.widget.woow-draggable-ready {
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.widget.woow-draggable-ready:hover {
+    border-color: rgba(0,123,255,0.3);
+    box-shadow: 0 2px 8px rgba(0,123,255,0.1);
+}
+
+.widget .woow-drag-handle {
+    top: 10px;
+    right: 10px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid #ddd;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Snap Indicators */
+.woow-snap-indicator {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    background: #007cba;
+    border: 2px solid white;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    transform: translate(-50%, -50%);
+}
+
+.woow-snap-indicator.active {
+    opacity: 1;
+}
+
+/* Layout Feedback */
+.woow-layout-feedback {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    font-size: 12px;
+    z-index: 10001;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.woow-layout-feedback.show {
+    opacity: 1;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 782px) {
+    .woow-drag-handle {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 14px !important;
+    }
+    
+    .woow-grid-overlay {
+        background-size: 15px 15px;
+    }
+    
+    #adminmenu .woow-drag-handle {
+        right: 15px;
+        width: 20px;
+        height: 20px;
+    }
+}
+
+@media (max-width: 600px) {
+    .woow-alignment-guide {
+        display: none;
+    }
+    
+    .woow-grid-overlay {
+        opacity: 0.3 !important;
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .woow-drop-zone-available::before {
+        border-color: #000;
+        border-width: 3px;
+    }
+    
+    .woow-alignment-guide {
+        background: #000;
+        box-shadow: none;
+    }
+    
+    .woow-drag-handle {
+        background: #fff !important;
+        border: 2px solid #000 !important;
+        color: #000 !important;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    .woow-draggable-ready,
+    .woow-dragging,
+    .woow-drop-zone-available,
+    .woow-alignment-guide,
+    .woow-layout-feedback {
+        transition: none;
+    }
+    
+    .woow-ghost-element {
+        transform: none;
+    }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .woow-drop-zone-available::before {
+        border-color: rgba(100,200,255,0.5);
+    }
+    
+    .woow-drop-zone-active {
+        background: rgba(100,200,255,0.1);
+    }
+    
+    .woow-ghost-element {
+        border-color: #64c8ff;
+        background: rgba(100,200,255,0.1);
+    }
+    
+    .woow-grid-overlay {
+        background-image: 
+            linear-gradient(to right, rgba(100,200,255,0.2) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(100,200,255,0.2) 1px, transparent 1px);
+    }
+    
+    .woow-layout-feedback {
+        background: rgba(255,255,255,0.9);
+        color: #000;
+    }
+}
+
+/* Animation Keyframes */
+@keyframes woow-drop-success {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes woow-drop-error {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+    100% { transform: translateX(0); }
+}
+
+.woow-drop-success {
+    animation: woow-drop-success 0.3s ease;
+}
+
+.woow-drop-error {
+    animation: woow-drop-error 0.3s ease;
+}
+
+/* Focus Styles for Accessibility */
+.woow-draggable-ready:focus {
+    outline: 2px solid #007cba;
+    outline-offset: 2px;
+}
+
+.woow-drag-handle:focus {
+    outline: 2px solid #007cba;
+    outline-offset: 1px;
+}
+
+/* Print Styles */
+@media print {
+    .woow-drag-handle,
+    .woow-grid-overlay,
+    .woow-alignment-guide,
+    .woow-layout-feedback {
+        display: none !important;
+    }
+    
+    .woow-draggable-ready {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+}

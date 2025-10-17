@@ -1,0 +1,17 @@
+/**
+ * Minimal Menu Fix - Only fix submenu transparency
+ * No positioning, no display changes, just background color
+ */
+
+/* Fix submenu transparency */
+#adminmenu .wp-submenu {
+    background: #2c3338 !important;
+}
+
+#adminmenu .wp-submenu a {
+    color: #fff !important;
+}
+
+#adminmenu .wp-submenu a:hover {
+    background: #32373c !important;
+}
