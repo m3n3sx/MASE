@@ -34,20 +34,41 @@ class MASE_CSS_Generator {
 		try {
 			$css = '';
 
+			// Generate palette CSS variables (Requirement 4.3).
+			$css .= $this->generate_palette_css( $settings );
+
 			// Generate admin bar CSS.
 			$css .= $this->generate_admin_bar_css( $settings );
 
 			// Generate admin menu CSS.
 			$css .= $this->generate_admin_menu_css( $settings );
 
-			// Generate typography CSS.
+			// Generate typography CSS (Requirement 6.1, 6.2, 6.3, 6.4, 6.5).
 			$css .= $this->generate_typography_css( $settings );
+
+			// Generate glassmorphism CSS (Requirement 5.1).
+			$css .= $this->generate_glassmorphism_css( $settings );
+
+			// Generate floating elements CSS (Requirement 5.2).
+			$css .= $this->generate_floating_elements_css( $settings );
+
+			// Generate shadows CSS (Requirement 5.3, 5.4).
+			$css .= $this->generate_shadows_css( $settings );
+
+			// Generate animations CSS (Requirement 5.5).
+			$css .= $this->generate_animations_css( $settings );
 
 			// Generate visual effects CSS.
 			$css .= $this->generate_visual_effects_css( $settings );
 
 			// Generate spacing CSS.
 			$css .= $this->generate_spacing_css( $settings );
+
+			// Generate mobile CSS (Requirement 7.1, 7.2, 7.3, 7.4, 7.5).
+			$css .= $this->generate_mobile_css( $settings );
+
+			// Generate custom CSS (Requirement 14.1).
+			$css .= $this->generate_custom_css( $settings );
 
 			// Performance monitoring.
 			$duration = ( microtime( true ) - $start_time ) * 1000; // Convert to milliseconds.
@@ -1193,6 +1214,479 @@ class MASE_CSS_Generator {
 			return number_format( floatval( $value ), 3, '.', '' ) . 'rem';
 		}
 		return intval( $value ) . 'px';
+	}
+
+	/**
+	 * Generate palette CSS variables from current palette.
+	 * Creates CSS custom properties for all palette colors.
+	 * Requirement 4.3 - Use CSS custom properties for all color values.
+	 *
+	 * @param array $settings Settings array.
+	 * @return string Palette CSS variables.
+	 */
+	private function generate_palette_css( $settings ) {
+		try {
+			// Get current palette from settings.
+			$palettes = isset( $settings['palettes'] ) ? $settings['palettes'] : array();
+			$current_palette_id = isset( $palettes['current'] ) ? $palettes['current'] : '';
+
+			// Return empty if no palette selected.
+			if ( empty( $current_palette_id ) ) {
+				return '';
+			}
+
+			// Get palette colors (this would come from MASE_Settings::get_palette()).
+			// For now, we'll check if palette colors are in settings.
+			$palette_colors = isset( $palettes['colors'] ) ? $palettes['colors'] : array();
+
+			if ( empty( $palette_colors ) ) {
+				return '';
+			}
+
+			$css = ':root{';
+
+			// Generate CSS variables for each color.
+			if ( isset( $palette_colors['primary'] ) ) {
+				$css .= '--mase-primary:' . esc_attr( $palette_colors['primary'] ) . ';';
+			}
+			if ( isset( $palette_colors['secondary'] ) ) {
+				$css .= '--mase-secondary:' . esc_attr( $palette_colors['secondary'] ) . ';';
+			}
+			if ( isset( $palette_colors['accent'] ) ) {
+				$css .= '--mase-accent:' . esc_attr( $palette_colors['accent'] ) . ';';
+			}
+			if ( isset( $palette_colors['background'] ) ) {
+				$css .= '--mase-background:' . esc_attr( $palette_colors['background'] ) . ';';
+			}
+			if ( isset( $palette_colors['text'] ) ) {
+				$css .= '--mase-text:' . esc_attr( $palette_colors['text'] ) . ';';
+			}
+			if ( isset( $palette_colors['text_secondary'] ) ) {
+				$css .= '--mase-text-secondary:' . esc_attr( $palette_colors['text_secondary'] ) . ';';
+			}
+
+			$css .= '}';
+
+			return $css;
+
+		} catch ( Exception $e ) {
+			error_log( sprintf( 'MASE: Palette CSS generation failed: %s', $e->getMessage() ) );
+			return '';
+		}
+	}
+
+	/**
+	 * Generate glassmorphism CSS with backdrop-filter effects.
+	 * Requirement 5.1 - Apply backdrop-filter blur with configurable intensity.
+	 *
+	 * @param array $settings Settings array.
+	 * @return string Glassmorphism CSS.
+	 */
+	private function generate_glassmorphism_css( $settings ) {
+		try {
+			$visual_effects = isset( $settings['visual_effects'] ) ? $settings['visual_effects'] : array();
+
+			// Return empty if visual effects not configured.
+			if ( empty( $visual_effects ) ) {
+				return '';
+			}
+
+			$css = '';
+
+			// Admin bar glassmorphism.
+			if ( isset( $visual_effects['admin_bar']['glassmorphism'] ) && 
+				 $visual_effects['admin_bar']['glassmorphism'] ) {
+				
+				$blur_intensity = isset( $visual_effects['admin_bar']['blur_intensity'] ) ? 
+					absint( $visual_effects['admin_bar']['blur_intensity'] ) : 20;
+
+				// Clamp blur intensity to 0-50px range.
+				$blur_intensity = max( 0, min( 50, $blur_intensity ) );
+
+				$css .= 'body.wp-admin #wpadminbar{';
+				$css .= 'backdrop-filter:blur(' . $blur_intensity . 'px)!important;';
+				$css .= '-webkit-backdrop-filter:blur(' . $blur_intensity . 'px)!important;';
+				$css .= 'background:rgba(255,255,255,0.1)!important;';
+				$css .= 'border:1px solid rgba(255,255,255,0.2)!important;';
+				$css .= '}';
+
+				// Fallback for browsers without backdrop-filter support (Requirement 19.5).
+				$css .= '@supports not (backdrop-filter:blur(10px)){';
+				$css .= 'body.wp-admin #wpadminbar{';
+				$css .= 'background:rgba(255,255,255,0.9)!important;';
+				$css .= '}';
+				$css .= '}';
+			}
+
+			// Admin menu glassmorphism.
+			if ( isset( $visual_effects['admin_menu']['glassmorphism'] ) && 
+				 $visual_effects['admin_menu']['glassmorphism'] ) {
+				
+				$blur_intensity = isset( $visual_effects['admin_menu']['blur_intensity'] ) ? 
+					absint( $visual_effects['admin_menu']['blur_intensity'] ) : 20;
+
+				$blur_intensity = max( 0, min( 50, $blur_intensity ) );
+
+				$css .= 'body.wp-admin #adminmenu,';
+				$css .= 'body.wp-admin #adminmenuback,';
+				$css .= 'body.wp-admin #adminmenuwrap{';
+				$css .= 'backdrop-filter:blur(' . $blur_intensity . 'px)!important;';
+				$css .= '-webkit-backdrop-filter:blur(' . $blur_intensity . 'px)!important;';
+				$css .= 'background:rgba(255,255,255,0.1)!important;';
+				$css .= '}';
+
+				// Fallback for browsers without backdrop-filter support.
+				$css .= '@supports not (backdrop-filter:blur(10px)){';
+				$css .= 'body.wp-admin #adminmenu,';
+				$css .= 'body.wp-admin #adminmenuback,';
+				$css .= 'body.wp-admin #adminmenuwrap{';
+				$css .= 'background:rgba(255,255,255,0.9)!important;';
+				$css .= '}';
+				$css .= '}';
+			}
+
+			return $css;
+
+		} catch ( Exception $e ) {
+			error_log( sprintf( 'MASE: Glassmorphism CSS generation failed: %s', $e->getMessage() ) );
+			return '';
+		}
+	}
+
+	/**
+	 * Generate floating elements CSS with margin-based positioning.
+	 * Requirement 5.2 - Apply configurable top margin to create floating appearance.
+	 *
+	 * @param array $settings Settings array.
+	 * @return string Floating elements CSS.
+	 */
+	private function generate_floating_elements_css( $settings ) {
+		try {
+			$visual_effects = isset( $settings['visual_effects'] ) ? $settings['visual_effects'] : array();
+
+			if ( empty( $visual_effects ) ) {
+				return '';
+			}
+
+			$css = '';
+
+			// Admin bar floating effect.
+			if ( isset( $visual_effects['admin_bar']['floating'] ) && 
+				 $visual_effects['admin_bar']['floating'] ) {
+				
+				$floating_margin = isset( $visual_effects['admin_bar']['floating_margin'] ) ? 
+					absint( $visual_effects['admin_bar']['floating_margin'] ) : 8;
+
+				// Clamp margin to 0-20px range.
+				$floating_margin = max( 0, min( 20, $floating_margin ) );
+
+				$css .= 'body.wp-admin #wpadminbar{';
+				$css .= 'margin-top:' . $floating_margin . 'px!important;';
+				$css .= '}';
+
+				// Adjust page margin to compensate.
+				$css .= 'body.wp-admin.admin-bar{';
+				$css .= 'margin-top:' . ( 32 + $floating_margin ) . 'px!important;';
+				$css .= '}';
+			}
+
+			// Admin menu floating effect.
+			if ( isset( $visual_effects['admin_menu']['floating'] ) && 
+				 $visual_effects['admin_menu']['floating'] ) {
+				
+				$floating_margin = isset( $visual_effects['admin_menu']['floating_margin'] ) ? 
+					absint( $visual_effects['admin_menu']['floating_margin'] ) : 8;
+
+				$floating_margin = max( 0, min( 20, $floating_margin ) );
+
+				$css .= 'body.wp-admin #adminmenu,';
+				$css .= 'body.wp-admin #adminmenuback,';
+				$css .= 'body.wp-admin #adminmenuwrap{';
+				$css .= 'margin-left:' . $floating_margin . 'px!important;';
+				$css .= 'margin-top:' . $floating_margin . 'px!important;';
+				$css .= '}';
+			}
+
+			return $css;
+
+		} catch ( Exception $e ) {
+			error_log( sprintf( 'MASE: Floating elements CSS generation failed: %s', $e->getMessage() ) );
+			return '';
+		}
+	}
+
+	/**
+	 * Generate shadows CSS for shadow presets and custom shadows.
+	 * Requirements 5.3, 5.4 - Apply predefined and custom shadow values.
+	 *
+	 * @param array $settings Settings array.
+	 * @return string Shadows CSS.
+	 */
+	private function generate_shadows_css( $settings ) {
+		try {
+			$visual_effects = isset( $settings['visual_effects'] ) ? $settings['visual_effects'] : array();
+
+			if ( empty( $visual_effects ) ) {
+				return '';
+			}
+
+			$css = '';
+
+			// Shadow presets.
+			$shadow_presets = array(
+				'flat'     => 'none',
+				'subtle'   => '0 2px 8px rgba(0,0,0,0.1)',
+				'elevated' => '0 4px 12px rgba(0,0,0,0.15)',
+				'floating' => '0 8px 20px 2px rgba(0,0,0,0.2)',
+			);
+
+			// Admin bar shadow.
+			if ( isset( $visual_effects['admin_bar']['shadow'] ) ) {
+				$shadow = $visual_effects['admin_bar']['shadow'];
+
+				// Check if it's a preset or custom.
+				if ( isset( $shadow_presets[ $shadow ] ) ) {
+					$shadow_value = $shadow_presets[ $shadow ];
+				} elseif ( 'custom' === $shadow && isset( $visual_effects['admin_bar']['custom_shadow'] ) ) {
+					$shadow_value = esc_attr( $visual_effects['admin_bar']['custom_shadow'] );
+				} else {
+					$shadow_value = 'none';
+				}
+
+				if ( 'none' !== $shadow_value ) {
+					$css .= 'body.wp-admin #wpadminbar{';
+					$css .= 'box-shadow:' . $shadow_value . '!important;';
+					$css .= '}';
+				}
+			}
+
+			// Admin menu shadow.
+			if ( isset( $visual_effects['admin_menu']['shadow'] ) ) {
+				$shadow = $visual_effects['admin_menu']['shadow'];
+
+				if ( isset( $shadow_presets[ $shadow ] ) ) {
+					$shadow_value = $shadow_presets[ $shadow ];
+				} elseif ( 'custom' === $shadow && isset( $visual_effects['admin_menu']['custom_shadow'] ) ) {
+					$shadow_value = esc_attr( $visual_effects['admin_menu']['custom_shadow'] );
+				} else {
+					$shadow_value = 'none';
+				}
+
+				if ( 'none' !== $shadow_value ) {
+					$css .= 'body.wp-admin #adminmenu,';
+					$css .= 'body.wp-admin #adminmenuback,';
+					$css .= 'body.wp-admin #adminmenuwrap{';
+					$css .= 'box-shadow:' . $shadow_value . '!important;';
+					$css .= '}';
+				}
+			}
+
+			// Border radius (Requirement 5.5).
+			if ( isset( $visual_effects['admin_bar']['border_radius'] ) ) {
+				$border_radius = absint( $visual_effects['admin_bar']['border_radius'] );
+				$border_radius = max( 0, min( 20, $border_radius ) );
+
+				if ( $border_radius > 0 ) {
+					$css .= 'body.wp-admin #wpadminbar{';
+					$css .= 'border-radius:' . $border_radius . 'px!important;';
+					$css .= '}';
+				}
+			}
+
+			if ( isset( $visual_effects['admin_menu']['border_radius'] ) ) {
+				$border_radius = absint( $visual_effects['admin_menu']['border_radius'] );
+				$border_radius = max( 0, min( 20, $border_radius ) );
+
+				if ( $border_radius > 0 ) {
+					$css .= 'body.wp-admin #adminmenu,';
+					$css .= 'body.wp-admin #adminmenuback,';
+					$css .= 'body.wp-admin #adminmenuwrap{';
+					$css .= 'border-radius:' . $border_radius . 'px!important;';
+					$css .= '}';
+				}
+			}
+
+			return $css;
+
+		} catch ( Exception $e ) {
+			error_log( sprintf( 'MASE: Shadows CSS generation failed: %s', $e->getMessage() ) );
+			return '';
+		}
+	}
+
+	/**
+	 * Generate animations CSS for page and element animations.
+	 * Requirement 5.5 - Apply animations and transitions.
+	 *
+	 * @param array $settings Settings array.
+	 * @return string Animations CSS.
+	 */
+	private function generate_animations_css( $settings ) {
+		try {
+			$effects = isset( $settings['effects'] ) ? $settings['effects'] : array();
+			$visual_effects = isset( $settings['visual_effects'] ) ? $settings['visual_effects'] : array();
+
+			$css = '';
+
+			// Page animations.
+			if ( isset( $effects['page_animations'] ) && $effects['page_animations'] ) {
+				$animation_speed = isset( $effects['animation_speed'] ) ? 
+					absint( $effects['animation_speed'] ) : 300;
+
+				$css .= 'body.wp-admin{';
+				$css .= 'animation:mase-fade-in ' . $animation_speed . 'ms ease-in-out;';
+				$css .= '}';
+
+				$css .= '@keyframes mase-fade-in{';
+				$css .= '0%{opacity:0;transform:translateY(10px);}';
+				$css .= '100%{opacity:1;transform:translateY(0);}';
+				$css .= '}';
+			}
+
+			// Hover effects.
+			if ( isset( $effects['hover_effects'] ) && $effects['hover_effects'] ) {
+				$css .= 'body.wp-admin #adminmenu a:hover,';
+				$css .= 'body.wp-admin .button:hover,';
+				$css .= 'body.wp-admin .button-primary:hover{';
+				$css .= 'transform:translateY(-2px)!important;';
+				$css .= 'transition:transform 200ms ease!important;';
+				$css .= '}';
+			}
+
+			// Microanimations.
+			if ( isset( $visual_effects['microanimations_enabled'] ) && 
+				 $visual_effects['microanimations_enabled'] ) {
+				
+				$css .= 'body.wp-admin #adminmenu a,';
+				$css .= 'body.wp-admin .button,';
+				$css .= 'body.wp-admin .button-primary,';
+				$css .= 'body.wp-admin input[type="text"],';
+				$css .= 'body.wp-admin input[type="email"],';
+				$css .= 'body.wp-admin textarea,';
+				$css .= 'body.wp-admin select{';
+				$css .= 'transition:all 200ms cubic-bezier(0.4,0,0.2,1)!important;';
+				$css .= '}';
+			}
+
+			// Reduced motion support (Requirement 13.2).
+			$css .= '@media (prefers-reduced-motion:reduce){';
+			$css .= 'body.wp-admin,';
+			$css .= 'body.wp-admin *{';
+			$css .= 'animation:none!important;';
+			$css .= 'transition:none!important;';
+			$css .= '}';
+			$css .= '}';
+
+			return $css;
+
+		} catch ( Exception $e ) {
+			error_log( sprintf( 'MASE: Animations CSS generation failed: %s', $e->getMessage() ) );
+			return '';
+		}
+	}
+
+	/**
+	 * Generate mobile CSS with responsive media queries.
+	 * Requirements 7.1, 7.2, 7.3, 7.4, 7.5 - Mobile optimization.
+	 *
+	 * @param array $settings Settings array.
+	 * @return string Mobile CSS.
+	 */
+	private function generate_mobile_css( $settings ) {
+		try {
+			$mobile = isset( $settings['mobile'] ) ? $settings['mobile'] : array();
+
+			// Return empty if mobile optimization not enabled.
+			if ( ! isset( $mobile['optimized'] ) || ! $mobile['optimized'] ) {
+				return '';
+			}
+
+			$css = '';
+
+			// Mobile media query (<782px).
+			$css .= '@media screen and (max-width:782px){';
+
+			// Touch-friendly targets (Requirement 7.2).
+			if ( isset( $mobile['touch_friendly'] ) && $mobile['touch_friendly'] ) {
+				$css .= 'body.wp-admin #adminmenu a,';
+				$css .= 'body.wp-admin .button,';
+				$css .= 'body.wp-admin .button-primary{';
+				$css .= 'min-height:44px!important;';
+				$css .= 'min-width:44px!important;';
+				$css .= 'padding:12px 16px!important;';
+				$css .= '}';
+			}
+
+			// Compact mode (Requirement 7.4).
+			if ( isset( $mobile['compact_mode'] ) && $mobile['compact_mode'] ) {
+				$css .= 'body.wp-admin #wpadminbar,';
+				$css .= 'body.wp-admin #adminmenu,';
+				$css .= 'body.wp-admin #wpbody-content{';
+				$css .= 'padding:0.75em!important;';
+				$css .= 'margin:0.5em!important;';
+				$css .= '}';
+			}
+
+			// Reduced effects (Requirement 7.3).
+			if ( isset( $mobile['reduced_effects'] ) && $mobile['reduced_effects'] ) {
+				$css .= 'body.wp-admin #wpadminbar,';
+				$css .= 'body.wp-admin #adminmenu{';
+				$css .= 'backdrop-filter:none!important;';
+				$css .= '-webkit-backdrop-filter:none!important;';
+				$css .= 'box-shadow:none!important;';
+				$css .= 'animation:none!important;';
+				$css .= 'transition:none!important;';
+				$css .= '}';
+			}
+
+			// Stack layout vertically (Requirement 7.5).
+			$css .= 'body.wp-admin #wpcontent{';
+			$css .= 'display:block!important;';
+			$css .= 'width:100%!important;';
+			$css .= '}';
+
+			$css .= '}';
+
+			return $css;
+
+		} catch ( Exception $e ) {
+			error_log( sprintf( 'MASE: Mobile CSS generation failed: %s', $e->getMessage() ) );
+			return '';
+		}
+	}
+
+	/**
+	 * Generate custom CSS from user input.
+	 * Requirement 14.1 - Append custom CSS to generated output.
+	 *
+	 * @param array $settings Settings array.
+	 * @return string Custom CSS.
+	 */
+	private function generate_custom_css( $settings ) {
+		try {
+			$advanced = isset( $settings['advanced'] ) ? $settings['advanced'] : array();
+
+			// Get custom CSS.
+			$custom_css = isset( $advanced['custom_css'] ) ? $advanced['custom_css'] : '';
+
+			// Return empty if no custom CSS.
+			if ( empty( $custom_css ) ) {
+				return '';
+			}
+
+			// Sanitize custom CSS (Requirement 14.4).
+			$custom_css = wp_kses_post( $custom_css );
+
+			// Add comment to identify custom CSS section.
+			$css = '/* Custom CSS */';
+			$css .= $custom_css;
+
+			return $css;
+
+		} catch ( Exception $e ) {
+			error_log( sprintf( 'MASE: Custom CSS generation failed: %s', $e->getMessage() ) );
+			return '';
+		}
 	}
 
 	/**

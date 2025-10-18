@@ -73,6 +73,158 @@ class MASE_Mobile_Optimizer {
 	}
 
 	/**
+	 * Check if effects should be reduced based on device and settings.
+	 * Requirement 7.3: Disable expensive visual effects on mobile when reduced effects mode is enabled.
+	 *
+	 * @return bool True if effects should be reduced, false otherwise.
+	 */
+	public function should_reduce_effects() {
+		// Check if mobile device.
+		if ( ! $this->is_mobile() ) {
+			return false;
+		}
+
+		// Get current settings.
+		$settings_obj = new MASE_Settings();
+		$settings = $settings_obj->get_option();
+
+		// Check if reduced effects mode is enabled for mobile.
+		$mobile_settings = isset( $settings['mobile'] ) ? $settings['mobile'] : array();
+		if ( isset( $mobile_settings['reduced_effects'] ) && $mobile_settings['reduced_effects'] ) {
+			return true;
+		}
+
+		// Check if low-power device detected.
+		if ( $this->is_low_power_device() ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Get optimized settings for mobile devices.
+	 * Requirement 7.1: Apply mobile-optimized styles automatically.
+	 * Requirement 7.2: Increase touch target sizes to minimum 44px × 44px.
+	 * Requirement 7.3: Disable expensive visual effects on mobile.
+	 * Requirement 7.4: Reduce padding and spacing by 25% in compact mode.
+	 *
+	 * @param array $settings Original settings array.
+	 * @return array Optimized settings for mobile devices.
+	 */
+	public function get_optimized_settings( $settings ) {
+		// If not mobile, return original settings.
+		if ( ! $this->is_mobile() ) {
+			return $settings;
+		}
+
+		$optimized = $settings;
+		$mobile_settings = isset( $settings['mobile'] ) ? $settings['mobile'] : array();
+
+		// Apply mobile optimization if enabled (Requirement 7.1).
+		if ( isset( $mobile_settings['optimized'] ) && $mobile_settings['optimized'] ) {
+			
+			// Increase touch target sizes (Requirement 7.2).
+			if ( isset( $mobile_settings['touch_friendly'] ) && $mobile_settings['touch_friendly'] ) {
+				// Increase admin bar height for better touch targets.
+				if ( isset( $optimized['admin_bar']['height'] ) ) {
+					$optimized['admin_bar']['height'] = max( 44, $optimized['admin_bar']['height'] );
+				}
+
+				// Increase admin menu item height.
+				if ( isset( $optimized['admin_menu']['item_height'] ) ) {
+					$optimized['admin_menu']['item_height'] = max( 44, $optimized['admin_menu']['item_height'] );
+				}
+			}
+
+			// Reduce padding and spacing in compact mode (Requirement 7.4).
+			if ( isset( $mobile_settings['compact_mode'] ) && $mobile_settings['compact_mode'] ) {
+				// Reduce admin bar padding by 25%.
+				if ( isset( $optimized['admin_bar']['padding'] ) ) {
+					$optimized['admin_bar']['padding'] = (int) ( $optimized['admin_bar']['padding'] * 0.75 );
+				}
+
+				// Reduce admin menu padding by 25%.
+				if ( isset( $optimized['admin_menu']['padding'] ) ) {
+					$optimized['admin_menu']['padding'] = (int) ( $optimized['admin_menu']['padding'] * 0.75 );
+				}
+
+				// Reduce content area padding by 25%.
+				if ( isset( $optimized['content']['padding'] ) ) {
+					$optimized['content']['padding'] = (int) ( $optimized['content']['padding'] * 0.75 );
+				}
+			}
+
+			// Disable expensive visual effects (Requirement 7.3).
+			if ( $this->should_reduce_effects() ) {
+				// Disable glassmorphism (blur effects).
+				if ( isset( $optimized['visual_effects']['admin_bar']['glassmorphism'] ) ) {
+					$optimized['visual_effects']['admin_bar']['glassmorphism'] = false;
+				}
+				if ( isset( $optimized['visual_effects']['admin_menu']['glassmorphism'] ) ) {
+					$optimized['visual_effects']['admin_menu']['glassmorphism'] = false;
+				}
+
+				// Disable shadows.
+				if ( isset( $optimized['visual_effects']['admin_bar']['shadow'] ) ) {
+					$optimized['visual_effects']['admin_bar']['shadow'] = 'none';
+				}
+				if ( isset( $optimized['visual_effects']['admin_menu']['shadow'] ) ) {
+					$optimized['visual_effects']['admin_menu']['shadow'] = 'none';
+				}
+
+				// Disable animations.
+				if ( isset( $optimized['visual_effects']['animations_enabled'] ) ) {
+					$optimized['visual_effects']['animations_enabled'] = false;
+				}
+				if ( isset( $optimized['visual_effects']['microanimations_enabled'] ) ) {
+					$optimized['visual_effects']['microanimations_enabled'] = false;
+				}
+
+				// Disable particle system.
+				if ( isset( $optimized['visual_effects']['particle_system'] ) ) {
+					$optimized['visual_effects']['particle_system'] = false;
+				}
+
+				// Disable 3D effects.
+				if ( isset( $optimized['visual_effects']['3d_effects'] ) ) {
+					$optimized['visual_effects']['3d_effects'] = false;
+				}
+			}
+		}
+
+		return $optimized;
+	}
+
+	/**
+	 * Get device capabilities information.
+	 * Requirement 7.1: Detect device capabilities for optimization decisions.
+	 *
+	 * @return array Device capabilities information.
+	 */
+	public function get_device_capabilities() {
+		$capabilities = array(
+			'is_mobile'           => $this->is_mobile(),
+			'is_low_power'        => $this->is_low_power_device(),
+			'should_reduce_effects' => $this->should_reduce_effects(),
+			'user_agent'          => isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '',
+			'viewport_width'      => 0, // Will be set by JavaScript.
+			'device_memory'       => 0, // Will be set by JavaScript.
+			'hardware_concurrency' => 0, // Will be set by JavaScript.
+			'connection_type'     => '', // Will be set by JavaScript.
+			'save_data'           => false, // Will be set by JavaScript.
+		);
+
+		// Try to get stored client-side capabilities.
+		$stored_capabilities = get_transient( 'mase_device_capabilities_' . get_current_user_id() );
+		if ( false !== $stored_capabilities && is_array( $stored_capabilities ) ) {
+			$capabilities = array_merge( $capabilities, $stored_capabilities );
+		}
+
+		return $capabilities;
+	}
+
+	/**
 	 * Check if shadows should be disabled based on device and settings.
 	 * Requirement 16.2: Provide option to disable shadows.
 	 * Requirement 16.1: Auto-detect low-power devices.
@@ -163,7 +315,7 @@ class MASE_Mobile_Optimizer {
 
 	/**
 	 * Get client-side detection script.
-	 * Detects low-power devices using JavaScript APIs (Requirement 16.1).
+	 * Detects low-power devices and device capabilities using JavaScript APIs (Requirement 16.1, 7.1).
 	 *
 	 * @return string JavaScript code for detection.
 	 */
@@ -172,13 +324,26 @@ class MASE_Mobile_Optimizer {
 		(function() {
 			'use strict';
 			
-			// Detect low-power device using JavaScript APIs
-			function detectLowPowerDevice() {
+			// Detect device capabilities and low-power device using JavaScript APIs
+			function detectDeviceCapabilities() {
 				var isLowPower = false;
+				var capabilities = {
+					viewport_width: window.innerWidth || document.documentElement.clientWidth,
+					device_memory: navigator.deviceMemory || 0,
+					hardware_concurrency: navigator.hardwareConcurrency || 0,
+					connection_type: '',
+					save_data: false
+				};
 				
 				// Check for Save-Data header support
-				if (navigator.connection && navigator.connection.saveData) {
-					isLowPower = true;
+				if (navigator.connection) {
+					if (navigator.connection.saveData) {
+						isLowPower = true;
+						capabilities.save_data = true;
+					}
+					if (navigator.connection.effectiveType) {
+						capabilities.connection_type = navigator.connection.effectiveType;
+					}
 				}
 				
 				// Check for reduced motion preference (often indicates low-power mode)
@@ -196,29 +361,65 @@ class MASE_Mobile_Optimizer {
 					isLowPower = true;
 				}
 				
-				// Send result to server if detected
-				if (isLowPower) {
-					jQuery.post(ajaxurl, {
-						action: 'mase_store_low_power_detection',
-						nonce: jQuery('#mase_nonce').val(),
-						is_low_power: true
-					});
-				}
+				// Send results to server
+				jQuery.post(ajaxurl, {
+					action: 'mase_store_device_capabilities',
+					nonce: jQuery('#mase_nonce').val(),
+					is_low_power: isLowPower,
+					capabilities: capabilities
+				});
 			}
 			
 			// Run detection on page load
 			if (document.readyState === 'loading') {
-				document.addEventListener('DOMContentLoaded', detectLowPowerDevice);
+				document.addEventListener('DOMContentLoaded', detectDeviceCapabilities);
 			} else {
-				detectLowPowerDevice();
+				detectDeviceCapabilities();
 			}
 		})();
 		";
 	}
 
 	/**
+	 * Handle AJAX request to store device capabilities.
+	 * Requirement 16.1: Store client-side detection result.
+	 * Requirement 7.1: Store device capabilities for optimization.
+	 */
+	public function handle_store_device_capabilities() {
+		// Verify nonce.
+		if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'mase_nonce' ) ) {
+			wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+		}
+
+		// Check user capability.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => 'Insufficient permissions' ) );
+		}
+
+		// Store low-power detection result.
+		$is_low_power = isset( $_POST['is_low_power'] ) && $_POST['is_low_power'];
+		set_transient( 'mase_low_power_device_' . get_current_user_id(), $is_low_power, HOUR_IN_SECONDS );
+
+		// Store device capabilities.
+		if ( isset( $_POST['capabilities'] ) && is_array( $_POST['capabilities'] ) ) {
+			$capabilities = array(
+				'viewport_width'       => isset( $_POST['capabilities']['viewport_width'] ) ? intval( $_POST['capabilities']['viewport_width'] ) : 0,
+				'device_memory'        => isset( $_POST['capabilities']['device_memory'] ) ? floatval( $_POST['capabilities']['device_memory'] ) : 0,
+				'hardware_concurrency' => isset( $_POST['capabilities']['hardware_concurrency'] ) ? intval( $_POST['capabilities']['hardware_concurrency'] ) : 0,
+				'connection_type'      => isset( $_POST['capabilities']['connection_type'] ) ? sanitize_text_field( $_POST['capabilities']['connection_type'] ) : '',
+				'save_data'            => isset( $_POST['capabilities']['save_data'] ) && $_POST['capabilities']['save_data'],
+			);
+
+			set_transient( 'mase_device_capabilities_' . get_current_user_id(), $capabilities, HOUR_IN_SECONDS );
+		}
+
+		wp_send_json_success( array( 'message' => 'Device capabilities stored' ) );
+	}
+
+	/**
 	 * Handle AJAX request to store low-power detection result.
 	 * Requirement 16.1: Store client-side detection result.
+	 * @deprecated Use handle_store_device_capabilities() instead.
 	 */
 	public function handle_store_low_power_detection() {
 		// Verify nonce.

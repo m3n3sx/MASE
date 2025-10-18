@@ -28,10 +28,31 @@ class MASE_Admin {
 		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_head', array( $this, 'inject_custom_css' ), 999 );
+		
+		// Core settings AJAX handlers.
 		add_action( 'wp_ajax_mase_save_settings', array( $this, 'handle_ajax_save_settings' ) );
-		add_action( 'wp_ajax_mase_apply_palette', array( $this, 'handle_ajax_apply_palette' ) );
 		add_action( 'wp_ajax_mase_export_settings', array( $this, 'handle_ajax_export_settings' ) );
 		add_action( 'wp_ajax_mase_import_settings', array( $this, 'handle_ajax_import_settings' ) );
+		
+		// Palette AJAX handlers (Requirement 1.3).
+		add_action( 'wp_ajax_mase_apply_palette', array( $this, 'handle_ajax_apply_palette' ) );
+		add_action( 'wp_ajax_mase_save_custom_palette', array( $this, 'handle_ajax_save_custom_palette' ) );
+		add_action( 'wp_ajax_mase_delete_custom_palette', array( $this, 'handle_ajax_delete_custom_palette' ) );
+		
+		// Template AJAX handlers (Requirement 2.4).
+		add_action( 'wp_ajax_mase_apply_template', array( $this, 'handle_ajax_apply_template' ) );
+		add_action( 'wp_ajax_mase_save_custom_template', array( $this, 'handle_ajax_save_custom_template' ) );
+		add_action( 'wp_ajax_mase_delete_custom_template', array( $this, 'handle_ajax_delete_custom_template' ) );
+		
+		// Backup AJAX handlers (Requirement 16.1, 16.2, 16.3, 16.4, 16.5).
+		add_action( 'wp_ajax_mase_create_backup', array( $this, 'handle_ajax_create_backup' ) );
+		add_action( 'wp_ajax_mase_restore_backup', array( $this, 'handle_ajax_restore_backup' ) );
+		add_action( 'wp_ajax_mase_get_backups', array( $this, 'handle_ajax_get_backups' ) );
+		
+		// Register mobile optimizer AJAX handlers (Requirement 7.1).
+		$mobile_optimizer = new MASE_Mobile_Optimizer();
+		add_action( 'wp_ajax_mase_store_device_capabilities', array( $mobile_optimizer, 'handle_store_device_capabilities' ) );
+		add_action( 'wp_ajax_mase_store_low_power_detection', array( $mobile_optimizer, 'handle_store_low_power_detection' ) );
 	}
 
 	public function add_admin_menu() {
@@ -58,27 +79,117 @@ class MASE_Admin {
 	}
 
 	public function enqueue_assets( $hook ) {
+		// Conditional loading - only on settings page (Requirement 11.5).
 		if ( 'toplevel_page_mase-settings' !== $hook ) {
 			return;
 		}
 
+		// Enqueue WordPress color picker dependency.
 		wp_enqueue_style( 'wp-color-picker' );
 		wp_enqueue_script( 'wp-color-picker' );
 
+		// Enqueue mase-admin.css with wp-color-picker dependency (Requirement 11.1).
 		wp_enqueue_style(
 			'mase-admin',
 			plugins_url( '../assets/css/mase-admin.css', __FILE__ ),
-			array(),
-			'1.0.0'
+			array( 'wp-color-picker' ),
+			'1.2.0'
 		);
 
+		// Enqueue mase-palettes.css with mase-admin dependency (Requirement 11.2).
+		wp_enqueue_style(
+			'mase-palettes',
+			plugins_url( '../assets/css/mase-palettes.css', __FILE__ ),
+			array( 'mase-admin' ),
+			'1.2.0'
+		);
+
+		// Enqueue mase-templates.css with mase-admin dependency (Requirement 11.3).
+		wp_enqueue_style(
+			'mase-templates',
+			plugins_url( '../assets/css/mase-templates.css', __FILE__ ),
+			array( 'mase-admin' ),
+			'1.2.0'
+		);
+
+		// Enqueue mase-accessibility.css with mase-admin dependency (Requirement 13.1-13.5).
+		wp_enqueue_style(
+			'mase-accessibility',
+			plugins_url( '../assets/css/mase-accessibility.css', __FILE__ ),
+			array( 'mase-admin' ),
+			'1.2.0'
+		);
+
+		// Enqueue mase-responsive.css with mase-admin dependency (Requirement 7.1-7.5, 19.1-19.5).
+		wp_enqueue_style(
+			'mase-responsive',
+			plugins_url( '../assets/css/mase-responsive.css', __FILE__ ),
+			array( 'mase-admin' ),
+			'1.2.0'
+		);
+
+		// Enqueue mase-admin.js with jquery and wp-color-picker dependencies (Requirement 11.4).
 		wp_enqueue_script(
 			'mase-admin',
 			plugins_url( '../assets/js/mase-admin.js', __FILE__ ),
 			array( 'jquery', 'wp-color-picker' ),
-			'1.0.0',
+			'1.2.0',
 			true
 		);
+
+		// Localize script with data and strings (Requirement 11.4).
+		wp_localize_script(
+			'mase-admin',
+			'maseAdmin',
+			array(
+				'ajaxUrl'   => admin_url( 'admin-ajax.php' ),
+				'nonce'     => wp_create_nonce( 'mase_save_settings' ),
+				'palettes'  => $this->get_palettes_data(),
+				'templates' => $this->get_templates_data(),
+				'strings'   => array(
+					'saving'                => __( 'Saving...', 'mase' ),
+					'saved'                 => __( 'Settings saved successfully!', 'mase' ),
+					'saveFailed'            => __( 'Failed to save settings. Please try again.', 'mase' ),
+					'paletteApplied'        => __( 'Palette applied successfully!', 'mase' ),
+					'paletteApplyFailed'    => __( 'Failed to apply palette. Please try again.', 'mase' ),
+					'templateApplied'       => __( 'Template applied successfully!', 'mase' ),
+					'templateApplyFailed'   => __( 'Failed to apply template. Please try again.', 'mase' ),
+					'confirmDelete'         => __( 'Are you sure you want to delete this item?', 'mase' ),
+					'exportSuccess'         => __( 'Settings exported successfully!', 'mase' ),
+					'exportFailed'          => __( 'Failed to export settings. Please try again.', 'mase' ),
+					'importSuccess'         => __( 'Settings imported successfully!', 'mase' ),
+					'importFailed'          => __( 'Failed to import settings. Please try again.', 'mase' ),
+					'invalidFile'           => __( 'Invalid file format. Please select a valid JSON file.', 'mase' ),
+					'backupCreated'         => __( 'Backup created successfully!', 'mase' ),
+					'backupRestored'        => __( 'Backup restored successfully!', 'mase' ),
+					'networkError'          => __( 'Network error. Please check your connection and try again.', 'mase' ),
+				),
+			)
+		);
+	}
+
+	/**
+	 * Get palettes data for JavaScript.
+	 *
+	 * Prepares palette data for localization to JavaScript.
+	 * Requirement 11.4: Provide palettes data to JavaScript.
+	 *
+	 * @return array Palettes data.
+	 */
+	private function get_palettes_data() {
+		return $this->settings->get_all_palettes();
+	}
+
+	/**
+	 * Get templates data for JavaScript.
+	 *
+	 * Prepares template data for localization to JavaScript.
+	 * Requirement 11.4: Provide templates data to JavaScript.
+	 *
+	 * @return array Templates data.
+	 */
+	private function get_templates_data() {
+		return $this->settings->get_all_templates();
 	}
 
 
@@ -254,6 +365,7 @@ class MASE_Admin {
 
 	/**
 	 * Handle AJAX import settings request.
+	 * Requirement 8.3: Validate JSON file structure before applying settings.
 	 */
 	public function handle_ajax_import_settings() {
 		try {
@@ -274,7 +386,7 @@ class MASE_Admin {
 				wp_send_json_error( array( 'message' => __( 'No import data provided', 'mase' ) ) );
 			}
 
-			// Decode JSON.
+			// Decode JSON (Requirement 8.3).
 			$data = json_decode( $import_data, true );
 
 			if ( ! $data || ! isset( $data['settings'] ) ) {
@@ -305,6 +417,401 @@ class MASE_Admin {
 			error_log( 'MASE Error (import_settings): ' . $e->getMessage() );
 			wp_send_json_error( array(
 				'message' => __( 'An error occurred during import. Please try again.', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX save custom palette request.
+	 * Requirement 1.3: Save custom palette with validation.
+	 */
+	public function handle_ajax_save_custom_palette() {
+		try {
+			// Verify nonce.
+			if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+			}
+
+			// Check user capability.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+			}
+
+			// Get palette data.
+			$name   = isset( $_POST['name'] ) ? sanitize_text_field( $_POST['name'] ) : '';
+			$colors = isset( $_POST['colors'] ) ? $_POST['colors'] : array();
+
+			if ( empty( $name ) ) {
+				wp_send_json_error( array( 'message' => __( 'Palette name is required', 'mase' ) ) );
+			}
+
+			if ( empty( $colors ) ) {
+				wp_send_json_error( array( 'message' => __( 'Palette colors are required', 'mase' ) ) );
+			}
+
+			// Save custom palette.
+			$palette_id = $this->settings->save_custom_palette( $name, $colors );
+
+			if ( $palette_id ) {
+				// Invalidate cache.
+				$this->cache->invalidate( 'generated_css' );
+
+				wp_send_json_success( array(
+					'message'    => __( 'Custom palette saved successfully', 'mase' ),
+					'palette_id' => $palette_id,
+				) );
+			} else {
+				wp_send_json_error( array(
+					'message' => __( 'Failed to save custom palette', 'mase' ),
+				) );
+			}
+		} catch ( Exception $e ) {
+			error_log( 'MASE Error (save_custom_palette): ' . $e->getMessage() );
+			wp_send_json_error( array(
+				'message' => __( 'An error occurred. Please try again.', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX delete custom palette request.
+	 * Requirement 1.3: Delete custom palette with confirmation.
+	 */
+	public function handle_ajax_delete_custom_palette() {
+		try {
+			// Verify nonce.
+			if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+			}
+
+			// Check user capability.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+			}
+
+			// Get palette ID.
+			$palette_id = isset( $_POST['palette_id'] ) ? sanitize_text_field( $_POST['palette_id'] ) : '';
+
+			if ( empty( $palette_id ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid palette ID', 'mase' ) ) );
+			}
+
+			// Delete custom palette.
+			$result = $this->settings->delete_custom_palette( $palette_id );
+
+			if ( $result ) {
+				// Invalidate cache.
+				$this->cache->invalidate( 'generated_css' );
+
+				wp_send_json_success( array(
+					'message' => __( 'Custom palette deleted successfully', 'mase' ),
+				) );
+			} else {
+				wp_send_json_error( array(
+					'message' => __( 'Failed to delete custom palette', 'mase' ),
+				) );
+			}
+		} catch ( Exception $e ) {
+			error_log( 'MASE Error (delete_custom_palette): ' . $e->getMessage() );
+			wp_send_json_error( array(
+				'message' => __( 'An error occurred. Please try again.', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX apply template request.
+	 * Requirement 2.4: Apply template with settings merge logic.
+	 */
+	public function handle_ajax_apply_template() {
+		try {
+			// Verify nonce.
+			if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+			}
+
+			// Check user capability.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+			}
+
+			// Get template ID.
+			$template_id = isset( $_POST['template_id'] ) ? sanitize_text_field( $_POST['template_id'] ) : '';
+
+			if ( empty( $template_id ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid template ID', 'mase' ) ) );
+			}
+
+			// Apply template.
+			$result = $this->settings->apply_template( $template_id );
+
+			if ( $result ) {
+				// Invalidate cache.
+				$this->cache->invalidate( 'generated_css' );
+
+				wp_send_json_success( array(
+					'message' => __( 'Template applied successfully', 'mase' ),
+				) );
+			} else {
+				wp_send_json_error( array(
+					'message' => __( 'Failed to apply template', 'mase' ),
+				) );
+			}
+		} catch ( Exception $e ) {
+			error_log( 'MASE Error (apply_template): ' . $e->getMessage() );
+			wp_send_json_error( array(
+				'message' => __( 'An error occurred. Please try again.', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX save custom template request.
+	 * Requirement 2.4: Save custom template with snapshot creation.
+	 */
+	public function handle_ajax_save_custom_template() {
+		try {
+			// Verify nonce.
+			if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+			}
+
+			// Check user capability.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+			}
+
+			// Get template data.
+			$name     = isset( $_POST['name'] ) ? sanitize_text_field( $_POST['name'] ) : '';
+			$settings = isset( $_POST['settings'] ) ? $_POST['settings'] : array();
+
+			if ( empty( $name ) ) {
+				wp_send_json_error( array( 'message' => __( 'Template name is required', 'mase' ) ) );
+			}
+
+			if ( empty( $settings ) ) {
+				wp_send_json_error( array( 'message' => __( 'Template settings are required', 'mase' ) ) );
+			}
+
+			// Save custom template.
+			$template_id = $this->settings->save_custom_template( $name, $settings );
+
+			if ( $template_id ) {
+				// Invalidate cache.
+				$this->cache->invalidate( 'generated_css' );
+
+				wp_send_json_success( array(
+					'message'     => __( 'Custom template saved successfully', 'mase' ),
+					'template_id' => $template_id,
+				) );
+			} else {
+				wp_send_json_error( array(
+					'message' => __( 'Failed to save custom template', 'mase' ),
+				) );
+			}
+		} catch ( Exception $e ) {
+			error_log( 'MASE Error (save_custom_template): ' . $e->getMessage() );
+			wp_send_json_error( array(
+				'message' => __( 'An error occurred. Please try again.', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX delete custom template request.
+	 * Requirement 2.4: Delete custom template with confirmation.
+	 */
+	public function handle_ajax_delete_custom_template() {
+		try {
+			// Verify nonce.
+			if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+			}
+
+			// Check user capability.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+			}
+
+			// Get template ID.
+			$template_id = isset( $_POST['template_id'] ) ? sanitize_text_field( $_POST['template_id'] ) : '';
+
+			if ( empty( $template_id ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid template ID', 'mase' ) ) );
+			}
+
+			// Delete custom template.
+			$result = $this->settings->delete_custom_template( $template_id );
+
+			if ( $result ) {
+				// Invalidate cache.
+				$this->cache->invalidate( 'generated_css' );
+
+				wp_send_json_success( array(
+					'message' => __( 'Custom template deleted successfully', 'mase' ),
+				) );
+			} else {
+				wp_send_json_error( array(
+					'message' => __( 'Failed to delete custom template', 'mase' ),
+				) );
+			}
+		} catch ( Exception $e ) {
+			error_log( 'MASE Error (delete_custom_template): ' . $e->getMessage() );
+			wp_send_json_error( array(
+				'message' => __( 'An error occurred. Please try again.', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX create backup request.
+	 * Requirement 16.1: Create backup with timestamp.
+	 */
+	public function handle_ajax_create_backup() {
+		try {
+			// Verify nonce.
+			if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+			}
+
+			// Check user capability.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+			}
+
+			// Get current settings.
+			$settings = $this->settings->get_option();
+
+			// Create backup ID with timestamp.
+			$backup_id = 'backup_' . gmdate( 'YmdHis' );
+
+			// Prepare backup data.
+			$backup_data = array(
+				'id'        => $backup_id,
+				'timestamp' => time(),
+				'version'   => MASE_Settings::PLUGIN_VERSION,
+				'settings'  => $settings,
+				'trigger'   => 'manual',
+			);
+
+			// Store backup.
+			$backups = get_option( 'mase_backups', array() );
+			$backups[ $backup_id ] = $backup_data;
+
+			// Limit to 10 most recent backups.
+			if ( count( $backups ) > 10 ) {
+				// Sort by timestamp descending.
+				uasort( $backups, function( $a, $b ) {
+					return $b['timestamp'] - $a['timestamp'];
+				});
+
+				// Keep only 10 most recent.
+				$backups = array_slice( $backups, 0, 10, true );
+			}
+
+			update_option( 'mase_backups', $backups );
+
+			wp_send_json_success( array(
+				'message'   => __( 'Backup created successfully', 'mase' ),
+				'backup_id' => $backup_id,
+				'timestamp' => $backup_data['timestamp'],
+			) );
+		} catch ( Exception $e ) {
+			error_log( 'MASE Error (create_backup): ' . $e->getMessage() );
+			wp_send_json_error( array(
+				'message' => __( 'An error occurred. Please try again.', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX restore backup request.
+	 * Requirement 16.5: Restore backup with backup ID validation.
+	 */
+	public function handle_ajax_restore_backup() {
+		try {
+			// Verify nonce.
+			if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+			}
+
+			// Check user capability.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+			}
+
+			// Get backup ID.
+			$backup_id = isset( $_POST['backup_id'] ) ? sanitize_text_field( $_POST['backup_id'] ) : '';
+
+			if ( empty( $backup_id ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid backup ID', 'mase' ) ) );
+			}
+
+			// Get backups.
+			$backups = get_option( 'mase_backups', array() );
+
+			if ( ! isset( $backups[ $backup_id ] ) ) {
+				wp_send_json_error( array( 'message' => __( 'Backup not found', 'mase' ) ) );
+			}
+
+			// Restore settings from backup.
+			$backup_data = $backups[ $backup_id ];
+			$result = $this->settings->update_option( $backup_data['settings'] );
+
+			if ( $result ) {
+				// Invalidate cache.
+				$this->cache->invalidate( 'generated_css' );
+
+				wp_send_json_success( array(
+					'message' => __( 'Backup restored successfully', 'mase' ),
+				) );
+			} else {
+				wp_send_json_error( array(
+					'message' => __( 'Failed to restore backup', 'mase' ),
+				) );
+			}
+		} catch ( Exception $e ) {
+			error_log( 'MASE Error (restore_backup): ' . $e->getMessage() );
+			wp_send_json_error( array(
+				'message' => __( 'An error occurred. Please try again.', 'mase' ),
+			) );
+		}
+	}
+
+	/**
+	 * Handle AJAX get backups request.
+	 * Requirement 16.4: Display list of all available backups with dates.
+	 */
+	public function handle_ajax_get_backups() {
+		try {
+			// Verify nonce.
+			if ( ! check_ajax_referer( 'mase_save_settings', 'nonce', false ) ) {
+				wp_send_json_error( array( 'message' => __( 'Invalid nonce', 'mase' ) ), 403 );
+			}
+
+			// Check user capability.
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_send_json_error( array( 'message' => __( 'Unauthorized access', 'mase' ) ), 403 );
+			}
+
+			// Get backups.
+			$backups = get_option( 'mase_backups', array() );
+
+			// Sort by timestamp descending (newest first).
+			uasort( $backups, function( $a, $b ) {
+				return $b['timestamp'] - $a['timestamp'];
+			});
+
+			// Convert to array for JSON response.
+			$backup_list = array_values( $backups );
+
+			wp_send_json_success( array(
+				'backups' => $backup_list,
+			) );
+		} catch ( Exception $e ) {
+			error_log( 'MASE Error (get_backups): ' . $e->getMessage() );
+			wp_send_json_error( array(
+				'message' => __( 'An error occurred. Please try again.', 'mase' ),
 			) );
 		}
 	}

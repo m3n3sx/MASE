@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Modern Admin Styler Enterprise
  * Plugin URI: https://github.com/m3n3sx/MASE
- * Description: Enterprise-grade WordPress admin styling plugin with clean, maintainable architecture. Features: 5 color palettes, import/export, advanced caching, live preview.
- * Version: 1.1.0
+ * Description: Enterprise-grade WordPress admin styling plugin with clean, maintainable architecture. Features: 10 color palettes, 11 templates, advanced visual effects, mobile optimization, import/export, backup/restore, live preview.
+ * Version: 1.2.0
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Author: MASE Development Team
@@ -12,6 +12,12 @@
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: modern-admin-styler
  * Domain Path: /languages
+ *
+ * Changelog:
+ * 1.2.0 - Major upgrade with 10 color palettes, 11 templates, visual effects system,
+ *         mobile optimization, backup/restore, keyboard shortcuts, accessibility features,
+ *         auto palette switching, and comprehensive settings migration from v1.1.0
+ * 1.1.0 - Initial release with 5 color palettes, import/export, caching, live preview
  *
  * @package ModernAdminStyler
  */
@@ -24,7 +30,7 @@ if ( ! defined( 'WPINC' ) ) {
 /**
  * Current plugin version.
  */
-define( 'MASE_VERSION', '1.1.0' );
+define( 'MASE_VERSION', '1.2.0' );
 
 /**
  * Plugin directory path.
@@ -65,10 +71,41 @@ function mase_autoloader( $class_name ) {
 spl_autoload_register( 'mase_autoloader' );
 
 /**
+ * Manually require critical classes that need early loading.
+ * These classes are loaded before WordPress hooks to ensure proper initialization.
+ */
+require_once MASE_PLUGIN_DIR . 'includes/class-mase-migration.php';
+require_once MASE_PLUGIN_DIR . 'includes/class-mase-mobile-optimizer.php';
+
+/**
+ * Run migration check on plugin load.
+ * Requirement 10.1: Detect current version and execute migration if needed.
+ * Requirement 10.2: Execute migration script automatically when upgrading from v1.1.0.
+ */
+add_action( 'plugins_loaded', 'mase_check_migration', 5 );
+
+/**
+ * Check and run migration if needed.
+ * Requirements: 10.1, 10.2, 10.3, 10.4, 10.5
+ *
+ * @return void
+ */
+function mase_check_migration() {
+	// Only run migration check in admin context.
+	if ( ! is_admin() ) {
+		return;
+	}
+	
+	// Run migration check (will only execute if version upgrade detected).
+	MASE_Migration::maybe_migrate();
+}
+
+/**
  * Plugin activation hook.
  *
  * Checks WordPress version requirements and initializes default settings.
  * Prevents activation if WordPress version is below 5.0.
+ * Requirement 15.1: Schedule hourly cron job for auto palette switching.
  *
  * @return void
  */
@@ -86,6 +123,11 @@ function mase_activate() {
 	// Initialize default settings on activation.
 	$settings = new MASE_Settings();
 	$settings->initialize_defaults();
+	
+	// Schedule hourly cron job for auto palette switching (Requirement 15.1).
+	if ( ! wp_next_scheduled( 'mase_auto_palette_switch' ) ) {
+		wp_schedule_event( time(), 'hourly', 'mase_auto_palette_switch' );
+	}
 }
 
 // Register activation hook.
@@ -95,6 +137,7 @@ register_activation_hook( __FILE__, 'mase_activate' );
  * Plugin deactivation hook.
  *
  * Cleans up transients but preserves settings in options table.
+ * Requirement 15.1: Clear scheduled cron job on deactivation.
  *
  * @return void
  */
@@ -102,6 +145,12 @@ function mase_deactivate() {
 	// Clean up all MASE caches.
 	$cache = new MASE_CacheManager();
 	$cache->clear_all();
+	
+	// Clear scheduled cron job (Requirement 15.1).
+	$timestamp = wp_next_scheduled( 'mase_auto_palette_switch' );
+	if ( $timestamp ) {
+		wp_unschedule_event( $timestamp, 'mase_auto_palette_switch' );
+	}
 }
 
 // Register deactivation hook.
@@ -145,3 +194,39 @@ function mase_init() {
 
 // Hook into plugins_loaded to initialize the plugin.
 add_action( 'plugins_loaded', 'mase_init' );
+
+/**
+ * Cron callback for auto palette switching.
+ *
+ * Checks if auto-switching is enabled and applies appropriate palette based on time.
+ * Requirements: 15.1, 15.2, 15.3, 15.4, 15.5
+ *
+ * @return void
+ */
+function mase_auto_palette_switch_callback() {
+	$settings = new MASE_Settings();
+	
+	// Check if auto-switching is enabled (Requirement 15.2).
+	$options = $settings->get_option();
+	if ( ! isset( $options['advanced']['auto_palette_switch'] ) || 
+	     ! $options['advanced']['auto_palette_switch'] ) {
+		return;
+	}
+	
+	// Execute auto palette switch (Requirements 15.3, 15.4).
+	$result = $settings->auto_switch_palette();
+	
+	// Log palette switch for debugging (Requirement 15.5).
+	if ( $result && defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		$current_hour = intval( current_time( 'H' ) );
+		$palette_id = $settings->get_palette_for_time( $current_hour );
+		error_log( sprintf(
+			'MASE: Auto palette switch executed at %s. Applied palette: %s',
+			current_time( 'Y-m-d H:i:s' ),
+			$palette_id
+		) );
+	}
+}
+
+// Register cron callback (Requirement 15.1).
+add_action( 'mase_auto_palette_switch', 'mase_auto_palette_switch_callback' );

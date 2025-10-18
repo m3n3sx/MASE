@@ -93,6 +93,7 @@ class MASE_Settings {
 
 	/**
 	 * Update option value.
+	 * Requirement 7.1: Apply mobile-optimized settings automatically during save.
 	 *
 	 * @param array $data Settings data to save.
 	 * @return bool True on success, false on failure.
@@ -104,11 +105,21 @@ class MASE_Settings {
 			return false;
 		}
 
+		// Apply mobile optimization if on mobile device (Requirement 7.1).
+		$mobile_optimizer = new MASE_Mobile_Optimizer();
+		if ( $mobile_optimizer->is_mobile() ) {
+			$validated = $mobile_optimizer->get_optimized_settings( $validated );
+		}
+
 		return update_option( self::OPTION_NAME, $validated );
 	}
 
 	/**
 	 * Get default settings.
+	 *
+	 * Extended with new categories: palettes, templates, typography (enhanced),
+	 * visual_effects (enhanced), effects, advanced, mobile, accessibility, keyboard_shortcuts.
+	 * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
 	 *
 	 * @return array Default settings array.
 	 */
@@ -130,6 +141,17 @@ class MASE_Settings {
 				'enable_minification' => true,
 				'cache_duration'      => 3600,
 			),
+			// NEW: Palettes category (Requirement 3.1).
+			'palettes' => array(
+				'current' => 'professional-blue',
+				'custom'  => array(), // Array of user-created palettes.
+			),
+			// NEW: Templates category (Requirement 3.2).
+			'templates' => array(
+				'current' => 'default',
+				'custom'  => array(), // Array of user-created templates.
+			),
+			// EXTENDED: Typography with enhanced settings (Requirement 3.3).
 			'typography'  => array(
 				'admin_bar'  => array(
 					'font_size'      => 13,
@@ -137,6 +159,7 @@ class MASE_Settings {
 					'line_height'    => 1.5,
 					'letter_spacing' => 0,
 					'text_transform' => 'none',
+					'font_family'    => 'system',
 				),
 				'admin_menu' => array(
 					'font_size'      => 13,
@@ -144,6 +167,7 @@ class MASE_Settings {
 					'line_height'    => 1.5,
 					'letter_spacing' => 0,
 					'text_transform' => 'none',
+					'font_family'    => 'system',
 				),
 				'content'    => array(
 					'font_size'      => 13,
@@ -151,18 +175,32 @@ class MASE_Settings {
 					'line_height'    => 1.6,
 					'letter_spacing' => 0,
 					'text_transform' => 'none',
+					'font_family'    => 'system',
 				),
+				'google_fonts' => 'Inter:300,400,500,600,700',
+				'enabled'      => true,
 			),
+			// EXTENDED: Visual effects with glassmorphism and floating (Requirement 3.4).
 			'visual_effects' => array(
 				'admin_bar' => array(
+					'glassmorphism'    => false,
+					'blur_intensity'   => 20,
+					'floating'         => false,
+					'floating_margin'  => 8,
 					'border_radius'    => 0,
+					'shadow'           => 'none',
 					'shadow_intensity' => 'none',
 					'shadow_direction' => 'bottom',
 					'shadow_blur'      => 10,
 					'shadow_color'     => 'rgba(0, 0, 0, 0.15)',
 				),
 				'admin_menu' => array(
+					'glassmorphism'    => false,
+					'blur_intensity'   => 20,
+					'floating'         => false,
+					'floating_margin'  => 8,
 					'border_radius'    => 0,
+					'shadow'           => 'none',
 					'shadow_intensity' => 'none',
 					'shadow_direction' => 'bottom',
 					'shadow_blur'      => 10,
@@ -182,9 +220,59 @@ class MASE_Settings {
 					'shadow_blur'      => 5,
 					'shadow_color'     => 'rgba(0, 0, 0, 0.05)',
 				),
-				'preset' => 'flat',
+				'preset'                 => 'flat',
 				'disable_mobile_shadows' => false,
-				'auto_detect_low_power' => true,
+				'auto_detect_low_power'  => true,
+				'animations_enabled'     => true,
+				'microanimations_enabled' => true,
+				'particle_system'        => false,
+				'sound_effects'          => false,
+				'3d_effects'             => false,
+			),
+			// NEW: Effects category (Requirement 3.5).
+			'effects' => array(
+				'page_animations'  => true,
+				'animation_speed'  => 300,
+				'hover_effects'    => true,
+				'focus_mode'       => false,
+				'performance_mode' => false,
+			),
+			// NEW: Advanced category (Requirement 3.5).
+			'advanced' => array(
+				'custom_css'             => '',
+				'custom_js'              => '',
+				'login_page_enabled'     => true,
+				'auto_palette_switch'    => false,
+				'auto_palette_times'     => array(
+					'morning'   => 'professional-blue',
+					'afternoon' => 'energetic-green',
+					'evening'   => 'sunset',
+					'night'     => 'dark-elegance',
+				),
+				'backup_enabled'         => true,
+				'backup_before_changes'  => true,
+			),
+			// NEW: Mobile category (Requirement 3.5).
+			'mobile' => array(
+				'optimized'       => true,
+				'touch_friendly'  => true,
+				'compact_mode'    => false,
+				'reduced_effects' => true,
+			),
+			// NEW: Accessibility category (Requirement 3.5).
+			'accessibility' => array(
+				'high_contrast'       => false,
+				'reduced_motion'      => false,
+				'focus_indicators'    => true,
+				'keyboard_navigation' => true,
+			),
+			// NEW: Keyboard shortcuts category (Requirement 3.5).
+			'keyboard_shortcuts' => array(
+				'enabled'          => true,
+				'palette_switch'   => true,
+				'theme_toggle'     => true,
+				'focus_mode'       => true,
+				'performance_mode' => true,
 			),
 			'spacing' => array(
 				'menu_padding' => array(
@@ -362,6 +450,170 @@ class MASE_Settings {
 			}
 		}
 
+		// NEW: Validate palettes settings (Requirement 3.4).
+		if ( isset( $input['palettes'] ) ) {
+			$validated['palettes'] = array();
+			
+			if ( isset( $input['palettes']['current'] ) ) {
+				$validated['palettes']['current'] = sanitize_text_field( $input['palettes']['current'] );
+			}
+			
+			if ( isset( $input['palettes']['custom'] ) && is_array( $input['palettes']['custom'] ) ) {
+				$validated['palettes']['custom'] = $input['palettes']['custom'];
+			}
+		}
+
+		// NEW: Validate templates settings (Requirement 3.4).
+		if ( isset( $input['templates'] ) ) {
+			$validated['templates'] = array();
+			
+			if ( isset( $input['templates']['current'] ) ) {
+				$validated['templates']['current'] = sanitize_text_field( $input['templates']['current'] );
+			}
+			
+			if ( isset( $input['templates']['custom'] ) && is_array( $input['templates']['custom'] ) ) {
+				$validated['templates']['custom'] = $input['templates']['custom'];
+			}
+		}
+
+		// NEW: Validate effects settings (Requirement 3.4).
+		if ( isset( $input['effects'] ) ) {
+			$validated['effects'] = array();
+			
+			if ( isset( $input['effects']['page_animations'] ) ) {
+				$validated['effects']['page_animations'] = (bool) $input['effects']['page_animations'];
+			}
+			
+			if ( isset( $input['effects']['animation_speed'] ) ) {
+				$speed = absint( $input['effects']['animation_speed'] );
+				if ( $speed >= 100 && $speed <= 1000 ) {
+					$validated['effects']['animation_speed'] = $speed;
+				} else {
+					$errors['animation_speed'] = 'Animation speed must be between 100 and 1000 milliseconds';
+				}
+			}
+			
+			if ( isset( $input['effects']['hover_effects'] ) ) {
+				$validated['effects']['hover_effects'] = (bool) $input['effects']['hover_effects'];
+			}
+			
+			if ( isset( $input['effects']['focus_mode'] ) ) {
+				$validated['effects']['focus_mode'] = (bool) $input['effects']['focus_mode'];
+			}
+			
+			if ( isset( $input['effects']['performance_mode'] ) ) {
+				$validated['effects']['performance_mode'] = (bool) $input['effects']['performance_mode'];
+			}
+		}
+
+		// NEW: Validate advanced settings (Requirement 3.4).
+		if ( isset( $input['advanced'] ) ) {
+			$validated['advanced'] = array();
+			
+			if ( isset( $input['advanced']['custom_css'] ) ) {
+				$validated['advanced']['custom_css'] = wp_kses_post( $input['advanced']['custom_css'] );
+			}
+			
+			if ( isset( $input['advanced']['custom_js'] ) ) {
+				$validated['advanced']['custom_js'] = sanitize_textarea_field( $input['advanced']['custom_js'] );
+			}
+			
+			if ( isset( $input['advanced']['login_page_enabled'] ) ) {
+				$validated['advanced']['login_page_enabled'] = (bool) $input['advanced']['login_page_enabled'];
+			}
+			
+			if ( isset( $input['advanced']['auto_palette_switch'] ) ) {
+				$validated['advanced']['auto_palette_switch'] = (bool) $input['advanced']['auto_palette_switch'];
+			}
+			
+			if ( isset( $input['advanced']['auto_palette_times'] ) && is_array( $input['advanced']['auto_palette_times'] ) ) {
+				$validated['advanced']['auto_palette_times'] = array();
+				$time_periods = array( 'morning', 'afternoon', 'evening', 'night' );
+				
+				foreach ( $time_periods as $period ) {
+					if ( isset( $input['advanced']['auto_palette_times'][ $period ] ) ) {
+						$validated['advanced']['auto_palette_times'][ $period ] = 
+							sanitize_text_field( $input['advanced']['auto_palette_times'][ $period ] );
+					}
+				}
+			}
+			
+			if ( isset( $input['advanced']['backup_enabled'] ) ) {
+				$validated['advanced']['backup_enabled'] = (bool) $input['advanced']['backup_enabled'];
+			}
+			
+			if ( isset( $input['advanced']['backup_before_changes'] ) ) {
+				$validated['advanced']['backup_before_changes'] = (bool) $input['advanced']['backup_before_changes'];
+			}
+		}
+
+		// NEW: Validate mobile settings (Requirement 3.4).
+		if ( isset( $input['mobile'] ) ) {
+			$validated['mobile'] = array();
+			
+			if ( isset( $input['mobile']['optimized'] ) ) {
+				$validated['mobile']['optimized'] = (bool) $input['mobile']['optimized'];
+			}
+			
+			if ( isset( $input['mobile']['touch_friendly'] ) ) {
+				$validated['mobile']['touch_friendly'] = (bool) $input['mobile']['touch_friendly'];
+			}
+			
+			if ( isset( $input['mobile']['compact_mode'] ) ) {
+				$validated['mobile']['compact_mode'] = (bool) $input['mobile']['compact_mode'];
+			}
+			
+			if ( isset( $input['mobile']['reduced_effects'] ) ) {
+				$validated['mobile']['reduced_effects'] = (bool) $input['mobile']['reduced_effects'];
+			}
+		}
+
+		// NEW: Validate accessibility settings (Requirement 3.4).
+		if ( isset( $input['accessibility'] ) ) {
+			$validated['accessibility'] = array();
+			
+			if ( isset( $input['accessibility']['high_contrast'] ) ) {
+				$validated['accessibility']['high_contrast'] = (bool) $input['accessibility']['high_contrast'];
+			}
+			
+			if ( isset( $input['accessibility']['reduced_motion'] ) ) {
+				$validated['accessibility']['reduced_motion'] = (bool) $input['accessibility']['reduced_motion'];
+			}
+			
+			if ( isset( $input['accessibility']['focus_indicators'] ) ) {
+				$validated['accessibility']['focus_indicators'] = (bool) $input['accessibility']['focus_indicators'];
+			}
+			
+			if ( isset( $input['accessibility']['keyboard_navigation'] ) ) {
+				$validated['accessibility']['keyboard_navigation'] = (bool) $input['accessibility']['keyboard_navigation'];
+			}
+		}
+
+		// NEW: Validate keyboard shortcuts settings (Requirement 3.4).
+		if ( isset( $input['keyboard_shortcuts'] ) ) {
+			$validated['keyboard_shortcuts'] = array();
+			
+			if ( isset( $input['keyboard_shortcuts']['enabled'] ) ) {
+				$validated['keyboard_shortcuts']['enabled'] = (bool) $input['keyboard_shortcuts']['enabled'];
+			}
+			
+			if ( isset( $input['keyboard_shortcuts']['palette_switch'] ) ) {
+				$validated['keyboard_shortcuts']['palette_switch'] = (bool) $input['keyboard_shortcuts']['palette_switch'];
+			}
+			
+			if ( isset( $input['keyboard_shortcuts']['theme_toggle'] ) ) {
+				$validated['keyboard_shortcuts']['theme_toggle'] = (bool) $input['keyboard_shortcuts']['theme_toggle'];
+			}
+			
+			if ( isset( $input['keyboard_shortcuts']['focus_mode'] ) ) {
+				$validated['keyboard_shortcuts']['focus_mode'] = (bool) $input['keyboard_shortcuts']['focus_mode'];
+			}
+			
+			if ( isset( $input['keyboard_shortcuts']['performance_mode'] ) ) {
+				$validated['keyboard_shortcuts']['performance_mode'] = (bool) $input['keyboard_shortcuts']['performance_mode'];
+			}
+		}
+
 		if ( ! empty( $errors ) ) {
 			return new WP_Error( 'validation_failed', 'Validation failed', $errors );
 		}
@@ -441,6 +693,21 @@ class MASE_Settings {
 					$errors[ 'typography_' . $element . '_text_transform' ] = 'Text transform must be none, uppercase, lowercase, or capitalize';
 				}
 			}
+
+			// NEW: Validate font_family - Requirement 3.3.
+			if ( isset( $element_data['font_family'] ) ) {
+				$validated[ $element ]['font_family'] = sanitize_text_field( $element_data['font_family'] );
+			}
+		}
+
+		// NEW: Validate google_fonts - Requirement 3.3.
+		if ( isset( $typography['google_fonts'] ) ) {
+			$validated['google_fonts'] = sanitize_text_field( $typography['google_fonts'] );
+		}
+
+		// NEW: Validate enabled - Requirement 3.3.
+		if ( isset( $typography['enabled'] ) ) {
+			$validated['enabled'] = (bool) $typography['enabled'];
 		}
 
 		if ( ! empty( $errors ) ) {
@@ -470,6 +737,36 @@ class MASE_Settings {
 			$validated[ $element ] = array();
 			$element_data          = $visual_effects[ $element ];
 
+			// NEW: Validate glassmorphism (boolean) - Requirement 3.4.
+			if ( isset( $element_data['glassmorphism'] ) ) {
+				$validated[ $element ]['glassmorphism'] = (bool) $element_data['glassmorphism'];
+			}
+
+			// NEW: Validate blur_intensity (0-50px) - Requirement 3.4.
+			if ( isset( $element_data['blur_intensity'] ) ) {
+				$blur_intensity = absint( $element_data['blur_intensity'] );
+				if ( $blur_intensity >= 0 && $blur_intensity <= 50 ) {
+					$validated[ $element ]['blur_intensity'] = $blur_intensity;
+				} else {
+					$errors[ 've_' . $element . '_blur_intensity' ] = 'Blur intensity must be between 0 and 50 pixels';
+				}
+			}
+
+			// NEW: Validate floating (boolean) - Requirement 3.4.
+			if ( isset( $element_data['floating'] ) ) {
+				$validated[ $element ]['floating'] = (bool) $element_data['floating'];
+			}
+
+			// NEW: Validate floating_margin (0-20px) - Requirement 3.4.
+			if ( isset( $element_data['floating_margin'] ) ) {
+				$floating_margin = absint( $element_data['floating_margin'] );
+				if ( $floating_margin >= 0 && $floating_margin <= 20 ) {
+					$validated[ $element ]['floating_margin'] = $floating_margin;
+				} else {
+					$errors[ 've_' . $element . '_floating_margin' ] = 'Floating margin must be between 0 and 20 pixels';
+				}
+			}
+
 			// Validate border_radius (0-30px).
 			if ( isset( $element_data['border_radius'] ) ) {
 				$border_radius = absint( $element_data['border_radius'] );
@@ -477,6 +774,17 @@ class MASE_Settings {
 					$validated[ $element ]['border_radius'] = $border_radius;
 				} else {
 					$errors[ 've_' . $element . '_border_radius' ] = 'Border radius must be between 0 and 30 pixels';
+				}
+			}
+
+			// NEW: Validate shadow (enum: none, subtle, elevated, floating) - Requirement 3.4.
+			if ( isset( $element_data['shadow'] ) ) {
+				$shadow = strtolower( sanitize_text_field( $element_data['shadow'] ) );
+				$allowed_shadows = array( 'none', 'subtle', 'elevated', 'floating' );
+				if ( in_array( $shadow, $allowed_shadows, true ) ) {
+					$validated[ $element ]['shadow'] = $shadow;
+				} else {
+					$errors[ 've_' . $element . '_shadow' ] = 'Shadow must be none, subtle, elevated, or floating';
 				}
 			}
 
@@ -543,6 +851,31 @@ class MASE_Settings {
 		// Validate auto_detect_low_power (Requirement 16.1).
 		if ( isset( $visual_effects['auto_detect_low_power'] ) ) {
 			$validated['auto_detect_low_power'] = (bool) $visual_effects['auto_detect_low_power'];
+		}
+
+		// NEW: Validate animations_enabled - Requirement 3.4.
+		if ( isset( $visual_effects['animations_enabled'] ) ) {
+			$validated['animations_enabled'] = (bool) $visual_effects['animations_enabled'];
+		}
+
+		// NEW: Validate microanimations_enabled - Requirement 3.4.
+		if ( isset( $visual_effects['microanimations_enabled'] ) ) {
+			$validated['microanimations_enabled'] = (bool) $visual_effects['microanimations_enabled'];
+		}
+
+		// NEW: Validate particle_system - Requirement 3.4.
+		if ( isset( $visual_effects['particle_system'] ) ) {
+			$validated['particle_system'] = (bool) $visual_effects['particle_system'];
+		}
+
+		// NEW: Validate sound_effects - Requirement 3.4.
+		if ( isset( $visual_effects['sound_effects'] ) ) {
+			$validated['sound_effects'] = (bool) $visual_effects['sound_effects'];
+		}
+
+		// NEW: Validate 3d_effects - Requirement 3.4.
+		if ( isset( $visual_effects['3d_effects'] ) ) {
+			$validated['3d_effects'] = (bool) $visual_effects['3d_effects'];
 		}
 
 		if ( ! empty( $errors ) ) {
@@ -1561,92 +1894,292 @@ class MASE_Settings {
 	/**
 	 * Get default color palettes.
 	 *
+	 * Defines 10 built-in color palettes with IDs, names, and color values.
+	 * Requirements: 1.1, 2.1, 2.2
+	 *
 	 * @return array Array of color palettes.
 	 */
 	public function get_default_palettes() {
 		return array(
-			'default'           => array(
-				'name'       => 'WordPress Default',
-				'admin_bar'  => array(
-					'bg_color'   => '#23282d',
-					'text_color' => '#ffffff',
-				),
-				'admin_menu' => array(
-					'bg_color'          => '#23282d',
-					'text_color'        => '#ffffff',
-					'hover_bg_color'    => '#191e23',
-					'hover_text_color'  => '#00b9eb',
-				),
-			),
-			'professional_blue' => array(
+			'professional-blue' => array(
+				'id'         => 'professional-blue',
 				'name'       => 'Professional Blue',
+				'colors'     => array(
+					'primary'        => '#4A90E2',
+					'secondary'      => '#50C9C3',
+					'accent'         => '#7B68EE',
+					'background'     => '#F8FAFC',
+					'text'           => '#1E293B',
+					'text_secondary' => '#64748B',
+				),
 				'admin_bar'  => array(
-					'bg_color'   => '#3B82F6',
+					'bg_color'   => '#4A90E2',
 					'text_color' => '#ffffff',
 				),
 				'admin_menu' => array(
-					'bg_color'          => '#1E40AF',
-					'text_color'        => '#ffffff',
-					'hover_bg_color'    => '#1D4ED8',
-					'hover_text_color'  => '#E0E7FF',
+					'bg_color'         => '#1E40AF',
+					'text_color'       => '#ffffff',
+					'hover_bg_color'   => '#3B82F6',
+					'hover_text_color' => '#E0E7FF',
 				),
+				'is_custom'  => false,
 			),
-			'creative_purple'   => array(
+			'creative-purple'   => array(
+				'id'         => 'creative-purple',
 				'name'       => 'Creative Purple',
+				'colors'     => array(
+					'primary'        => '#8B5CF6',
+					'secondary'      => '#EC4899',
+					'accent'         => '#F59E0B',
+					'background'     => '#FAF5FF',
+					'text'           => '#1F2937',
+					'text_secondary' => '#6B7280',
+				),
 				'admin_bar'  => array(
 					'bg_color'   => '#8B5CF6',
 					'text_color' => '#ffffff',
 				),
 				'admin_menu' => array(
-					'bg_color'          => '#7C3AED',
-					'text_color'        => '#ffffff',
-					'hover_bg_color'    => '#8B5CF6',
-					'hover_text_color'  => '#EDE9FE',
+					'bg_color'         => '#7C3AED',
+					'text_color'       => '#ffffff',
+					'hover_bg_color'   => '#8B5CF6',
+					'hover_text_color' => '#EDE9FE',
 				),
+				'is_custom'  => false,
 			),
-			'energetic_green'   => array(
+			'energetic-green'   => array(
+				'id'         => 'energetic-green',
 				'name'       => 'Energetic Green',
+				'colors'     => array(
+					'primary'        => '#10B981',
+					'secondary'      => '#34D399',
+					'accent'         => '#FBBF24',
+					'background'     => '#F0FDF4',
+					'text'           => '#064E3B',
+					'text_secondary' => '#047857',
+				),
 				'admin_bar'  => array(
 					'bg_color'   => '#10B981',
 					'text_color' => '#ffffff',
 				),
 				'admin_menu' => array(
-					'bg_color'          => '#059669',
-					'text_color'        => '#ffffff',
-					'hover_bg_color'    => '#10B981',
-					'hover_text_color'  => '#D1FAE5',
+					'bg_color'         => '#059669',
+					'text_color'       => '#ffffff',
+					'hover_bg_color'   => '#10B981',
+					'hover_text_color' => '#D1FAE5',
 				),
+				'is_custom'  => false,
 			),
-			'warm_orange'       => array(
-				'name'       => 'Warm Orange',
+			'sunset'            => array(
+				'id'         => 'sunset',
+				'name'       => 'Sunset',
+				'colors'     => array(
+					'primary'        => '#F97316',
+					'secondary'      => '#FB923C',
+					'accent'         => '#FBBF24',
+					'background'     => '#FFF7ED',
+					'text'           => '#7C2D12',
+					'text_secondary' => '#C2410C',
+				),
 				'admin_bar'  => array(
 					'bg_color'   => '#F97316',
 					'text_color' => '#ffffff',
 				),
 				'admin_menu' => array(
-					'bg_color'          => '#EA580C',
-					'text_color'        => '#ffffff',
-					'hover_bg_color'    => '#F97316',
-					'hover_text_color'  => '#FED7AA',
+					'bg_color'         => '#EA580C',
+					'text_color'       => '#ffffff',
+					'hover_bg_color'   => '#F97316',
+					'hover_text_color' => '#FED7AA',
 				),
+				'is_custom'  => false,
+			),
+			'dark-elegance'     => array(
+				'id'         => 'dark-elegance',
+				'name'       => 'Dark Elegance',
+				'colors'     => array(
+					'primary'        => '#1F2937',
+					'secondary'      => '#374151',
+					'accent'         => '#60A5FA',
+					'background'     => '#111827',
+					'text'           => '#F9FAFB',
+					'text_secondary' => '#D1D5DB',
+				),
+				'admin_bar'  => array(
+					'bg_color'   => '#1F2937',
+					'text_color' => '#F9FAFB',
+				),
+				'admin_menu' => array(
+					'bg_color'         => '#111827',
+					'text_color'       => '#F9FAFB',
+					'hover_bg_color'   => '#374151',
+					'hover_text_color' => '#60A5FA',
+				),
+				'is_custom'  => false,
+			),
+			'ocean-breeze'      => array(
+				'id'         => 'ocean-breeze',
+				'name'       => 'Ocean Breeze',
+				'colors'     => array(
+					'primary'        => '#0EA5E9',
+					'secondary'      => '#06B6D4',
+					'accent'         => '#22D3EE',
+					'background'     => '#F0F9FF',
+					'text'           => '#0C4A6E',
+					'text_secondary' => '#0369A1',
+				),
+				'admin_bar'  => array(
+					'bg_color'   => '#0EA5E9',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'         => '#0284C7',
+					'text_color'       => '#ffffff',
+					'hover_bg_color'   => '#0EA5E9',
+					'hover_text_color' => '#E0F2FE',
+				),
+				'is_custom'  => false,
+			),
+			'rose-garden'       => array(
+				'id'         => 'rose-garden',
+				'name'       => 'Rose Garden',
+				'colors'     => array(
+					'primary'        => '#E11D48',
+					'secondary'      => '#F43F5E',
+					'accent'         => '#FB7185',
+					'background'     => '#FFF1F2',
+					'text'           => '#881337',
+					'text_secondary' => '#BE123C',
+				),
+				'admin_bar'  => array(
+					'bg_color'   => '#E11D48',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'         => '#BE123C',
+					'text_color'       => '#ffffff',
+					'hover_bg_color'   => '#E11D48',
+					'hover_text_color' => '#FFE4E6',
+				),
+				'is_custom'  => false,
+			),
+			'forest-calm'       => array(
+				'id'         => 'forest-calm',
+				'name'       => 'Forest Calm',
+				'colors'     => array(
+					'primary'        => '#16A34A',
+					'secondary'      => '#22C55E',
+					'accent'         => '#84CC16',
+					'background'     => '#F7FEE7',
+					'text'           => '#14532D',
+					'text_secondary' => '#166534',
+				),
+				'admin_bar'  => array(
+					'bg_color'   => '#16A34A',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'         => '#15803D',
+					'text_color'       => '#ffffff',
+					'hover_bg_color'   => '#16A34A',
+					'hover_text_color' => '#DCFCE7',
+				),
+				'is_custom'  => false,
+			),
+			'midnight-blue'     => array(
+				'id'         => 'midnight-blue',
+				'name'       => 'Midnight Blue',
+				'colors'     => array(
+					'primary'        => '#1E3A8A',
+					'secondary'      => '#3B82F6',
+					'accent'         => '#60A5FA',
+					'background'     => '#EFF6FF',
+					'text'           => '#1E3A8A',
+					'text_secondary' => '#1E40AF',
+				),
+				'admin_bar'  => array(
+					'bg_color'   => '#1E3A8A',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'         => '#1E40AF',
+					'text_color'       => '#ffffff',
+					'hover_bg_color'   => '#3B82F6',
+					'hover_text_color' => '#DBEAFE',
+				),
+				'is_custom'  => false,
+			),
+			'golden-hour'       => array(
+				'id'         => 'golden-hour',
+				'name'       => 'Golden Hour',
+				'colors'     => array(
+					'primary'        => '#D97706',
+					'secondary'      => '#F59E0B',
+					'accent'         => '#FBBF24',
+					'background'     => '#FFFBEB',
+					'text'           => '#78350F',
+					'text_secondary' => '#92400E',
+				),
+				'admin_bar'  => array(
+					'bg_color'   => '#D97706',
+					'text_color' => '#ffffff',
+				),
+				'admin_menu' => array(
+					'bg_color'         => '#B45309',
+					'text_color'       => '#ffffff',
+					'hover_bg_color'   => '#D97706',
+					'hover_text_color' => '#FEF3C7',
+				),
+				'is_custom'  => false,
 			),
 		);
 	}
 
 	/**
+	 * Get a specific palette by ID.
+	 *
+	 * Retrieves palette from default palettes or custom palettes.
+	 * Requirement 3.1: Palette management methods.
+	 *
+	 * @param string $palette_id Palette ID to retrieve.
+	 * @return array|false Palette data or false if not found.
+	 */
+	public function get_palette( $palette_id ) {
+		$all_palettes = $this->get_all_palettes();
+		
+		return isset( $all_palettes[ $palette_id ] ) ? $all_palettes[ $palette_id ] : false;
+	}
+
+	/**
+	 * Get all available palettes (default + custom).
+	 *
+	 * Requirement 3.1: Palette management methods.
+	 *
+	 * @return array Array of all palettes.
+	 */
+	public function get_all_palettes() {
+		$default_palettes = $this->get_default_palettes();
+		$settings = $this->get_option();
+		$custom_palettes = isset( $settings['palettes']['custom'] ) ? $settings['palettes']['custom'] : array();
+		
+		return array_merge( $default_palettes, $custom_palettes );
+	}
+
+	/**
 	 * Apply a color palette.
+	 *
+	 * Updated to support new palette structure and custom palettes.
+	 * Requirement 3.1: Palette management methods.
 	 *
 	 * @param string $palette_id Palette ID to apply.
 	 * @return bool True on success, false on failure.
 	 */
 	public function apply_palette( $palette_id ) {
-		$palettes = $this->get_default_palettes();
+		$palette = $this->get_palette( $palette_id );
 
-		if ( ! isset( $palettes[ $palette_id ] ) ) {
+		if ( false === $palette ) {
 			return false;
 		}
 
-		$palette          = $palettes[ $palette_id ];
 		$current_settings = $this->get_option();
 
 		// Apply palette colors to current settings.
@@ -1659,7 +2192,809 @@ class MASE_Settings {
 			$palette['admin_menu']
 		);
 
+		// Update current palette.
+		$current_settings['palettes']['current'] = $palette_id;
+
 		return $this->update_option( $current_settings );
+	}
+
+	/**
+	 * Save a custom palette.
+	 *
+	 * Requirement 3.1: Palette management methods.
+	 *
+	 * @param string $name   Palette name.
+	 * @param array  $colors Palette colors (admin_bar and admin_menu).
+	 * @return string|false Palette ID on success, false on failure.
+	 */
+	public function save_custom_palette( $name, $colors ) {
+		// Validate required structure.
+		if ( ! isset( $colors['admin_bar'] ) || ! isset( $colors['admin_menu'] ) ) {
+			return false;
+		}
+
+		// Validate colors.
+		$validated_colors = $this->validate_palette_colors( $colors );
+		if ( is_wp_error( $validated_colors ) ) {
+			return false;
+		}
+
+		$current_settings = $this->get_option();
+		
+		// Generate unique ID for custom palette.
+		$palette_id = 'custom_' . sanitize_title( $name ) . '_' . time();
+		
+		// Ensure custom palettes array exists.
+		if ( ! isset( $current_settings['palettes']['custom'] ) ) {
+			$current_settings['palettes']['custom'] = array();
+		}
+
+		// Add custom palette.
+		$current_settings['palettes']['custom'][ $palette_id ] = array(
+			'name'       => sanitize_text_field( $name ),
+			'admin_bar'  => $validated_colors['admin_bar'],
+			'admin_menu' => $validated_colors['admin_menu'],
+			'is_custom'  => true,
+			'created_at' => current_time( 'timestamp' ),
+		);
+
+		$result = $this->update_option( $current_settings );
+		
+		return $result ? $palette_id : false;
+	}
+
+	/**
+	 * Delete a custom palette.
+	 *
+	 * Requirement 3.1: Palette management methods.
+	 *
+	 * @param string $palette_id Palette ID to delete.
+	 * @return bool True on success, false on failure.
+	 */
+	public function delete_custom_palette( $palette_id ) {
+		// Prevent deletion of default palettes.
+		if ( strpos( $palette_id, 'custom_' ) !== 0 ) {
+			return false;
+		}
+
+		$current_settings = $this->get_option();
+		
+		if ( ! isset( $current_settings['palettes']['custom'][ $palette_id ] ) ) {
+			return false;
+		}
+
+		// Remove custom palette.
+		unset( $current_settings['palettes']['custom'][ $palette_id ] );
+
+		// If deleted palette was current, reset to default.
+		if ( isset( $current_settings['palettes']['current'] ) && 
+		     $current_settings['palettes']['current'] === $palette_id ) {
+			$current_settings['palettes']['current'] = 'professional-blue';
+		}
+
+		return $this->update_option( $current_settings );
+	}
+
+	/**
+	 * Validate palette ID.
+	 *
+	 * Checks if palette ID exists in default or custom palettes.
+	 * Requirements: 1.1, 2.1, 2.2
+	 *
+	 * @param string $palette_id Palette ID to validate.
+	 * @return bool True if valid, false otherwise.
+	 */
+	public function validate_palette_id( $palette_id ) {
+		if ( empty( $palette_id ) || ! is_string( $palette_id ) ) {
+			return false;
+		}
+
+		$all_palettes = $this->get_all_palettes();
+		return isset( $all_palettes[ $palette_id ] );
+	}
+
+	/**
+	 * Validate palette colors.
+	 *
+	 * Requirement 3.4: Validate color arrays.
+	 *
+	 * @param array $colors Palette colors to validate.
+	 * @return array|WP_Error Validated colors or WP_Error on failure.
+	 */
+	private function validate_palette_colors( $colors ) {
+		$validated = array();
+		$errors = array();
+
+		// Validate admin_bar colors.
+		if ( isset( $colors['admin_bar'] ) ) {
+			$validated['admin_bar'] = array();
+			
+			if ( isset( $colors['admin_bar']['bg_color'] ) ) {
+				$color = sanitize_hex_color( $colors['admin_bar']['bg_color'] );
+				if ( $color ) {
+					$validated['admin_bar']['bg_color'] = $color;
+				} else {
+					$errors['admin_bar_bg_color'] = 'Invalid hex color format';
+				}
+			}
+
+			if ( isset( $colors['admin_bar']['text_color'] ) ) {
+				$color = sanitize_hex_color( $colors['admin_bar']['text_color'] );
+				if ( $color ) {
+					$validated['admin_bar']['text_color'] = $color;
+				} else {
+					$errors['admin_bar_text_color'] = 'Invalid hex color format';
+				}
+			}
+		}
+
+		// Validate admin_menu colors.
+		if ( isset( $colors['admin_menu'] ) ) {
+			$validated['admin_menu'] = array();
+			$color_fields = array( 'bg_color', 'text_color', 'hover_bg_color', 'hover_text_color' );
+			
+			foreach ( $color_fields as $field ) {
+				if ( isset( $colors['admin_menu'][ $field ] ) ) {
+					$color = sanitize_hex_color( $colors['admin_menu'][ $field ] );
+					if ( $color ) {
+						$validated['admin_menu'][ $field ] = $color;
+					} else {
+						$errors[ 'admin_menu_' . $field ] = 'Invalid hex color format';
+					}
+				}
+			}
+		}
+
+		if ( ! empty( $errors ) ) {
+			return new WP_Error( 'palette_validation_failed', 'Palette validation failed', $errors );
+		}
+
+		return $validated;
+	}
+
+	/**
+	 * Validate template ID.
+	 *
+	 * Checks if template ID exists in default or custom templates.
+	 * Requirements: 1.1, 2.1, 2.2
+	 *
+	 * @param string $template_id Template ID to validate.
+	 * @return bool True if valid, false otherwise.
+	 */
+	public function validate_template_id( $template_id ) {
+		if ( empty( $template_id ) || ! is_string( $template_id ) ) {
+			return false;
+		}
+
+		$all_templates = $this->get_all_templates();
+		return isset( $all_templates[ $template_id ] );
+	}
+
+	/**
+	 * Get a specific template by ID.
+	 *
+	 * Retrieves template from default templates or custom templates.
+	 * Requirement 3.2: Template management methods.
+	 *
+	 * @param string $template_id Template ID to retrieve.
+	 * @return array|false Template data or false if not found.
+	 */
+	public function get_template( $template_id ) {
+		$all_templates = $this->get_all_templates();
+		
+		return isset( $all_templates[ $template_id ] ) ? $all_templates[ $template_id ] : false;
+	}
+
+	/**
+	 * Get all available templates (default + custom).
+	 *
+	 * Requirement 3.2: Template management methods.
+	 *
+	 * @return array Array of all templates.
+	 */
+	public function get_all_templates() {
+		$default_templates = $this->get_default_templates();
+		$settings = $this->get_option();
+		$custom_templates = isset( $settings['templates']['custom'] ) ? $settings['templates']['custom'] : array();
+		
+		return array_merge( $default_templates, $custom_templates );
+	}
+
+	/**
+	 * Get default templates.
+	 *
+	 * Defines 11 predefined templates with complete settings.
+	 * Requirements: 1.1, 2.1, 2.2
+	 *
+	 * @return array Array of default templates.
+	 */
+	private function get_default_templates() {
+		return array(
+			'default' => array(
+				'id'          => 'default',
+				'name'        => 'WordPress Default',
+				'description' => 'Classic WordPress admin styling with no modifications',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'professional-blue' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 0,
+							'shadow' => 'none',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 0,
+							'shadow' => 'none',
+						),
+					),
+				),
+			),
+			'modern-minimal' => array(
+				'id'          => 'modern-minimal',
+				'name'        => 'Modern Minimal',
+				'description' => 'Clean and minimal design with subtle effects',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'professional-blue' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 14,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 4,
+							'shadow' => 'subtle',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 4,
+							'shadow' => 'subtle',
+						),
+					),
+				),
+			),
+			'glassmorphic' => array(
+				'id'          => 'glassmorphic',
+				'name'        => 'Glassmorphic',
+				'description' => 'Modern glass effect with blur and transparency',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'professional-blue' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 14,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => true,
+							'blur_intensity' => 20,
+							'floating' => true,
+							'floating_margin' => 8,
+							'border_radius' => 12,
+							'shadow' => 'elevated',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => true,
+							'blur_intensity' => 15,
+							'floating' => false,
+							'border_radius' => 8,
+							'shadow' => 'subtle',
+						),
+					),
+				),
+			),
+			'dark-mode' => array(
+				'id'          => 'dark-mode',
+				'name'        => 'Dark Mode',
+				'description' => 'Elegant dark theme for reduced eye strain',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'dark-elegance' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 0,
+							'shadow' => 'subtle',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 0,
+							'shadow' => 'subtle',
+						),
+					),
+				),
+			),
+			'creative-studio' => array(
+				'id'          => 'creative-studio',
+				'name'        => 'Creative Studio',
+				'description' => 'Vibrant and creative design for artistic workflows',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'creative-purple' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 14,
+							'font_weight' => 500,
+							'line_height' => 1.5,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 500,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => false,
+							'floating' => true,
+							'floating_margin' => 10,
+							'border_radius' => 8,
+							'shadow' => 'elevated',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 6,
+							'shadow' => 'subtle',
+						),
+					),
+				),
+			),
+			'corporate-pro' => array(
+				'id'          => 'corporate-pro',
+				'name'        => 'Corporate Pro',
+				'description' => 'Professional corporate design with clean lines',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'midnight-blue' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 13,
+							'font_weight' => 500,
+							'line_height' => 1.5,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 0,
+							'shadow' => 'subtle',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 0,
+							'shadow' => 'none',
+						),
+					),
+				),
+			),
+			'nature-inspired' => array(
+				'id'          => 'nature-inspired',
+				'name'        => 'Nature Inspired',
+				'description' => 'Calming green tones inspired by nature',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'forest-calm' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.6,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.6,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 6,
+							'shadow' => 'subtle',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 4,
+							'shadow' => 'subtle',
+						),
+					),
+				),
+			),
+			'sunset-vibes' => array(
+				'id'          => 'sunset-vibes',
+				'name'        => 'Sunset Vibes',
+				'description' => 'Warm sunset colors for evening work sessions',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'sunset' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 14,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => false,
+							'floating' => true,
+							'floating_margin' => 8,
+							'border_radius' => 10,
+							'shadow' => 'elevated',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 6,
+							'shadow' => 'subtle',
+						),
+					),
+				),
+			),
+			'ocean-depth' => array(
+				'id'          => 'ocean-depth',
+				'name'        => 'Ocean Depth',
+				'description' => 'Cool ocean blues for a refreshing workspace',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'ocean-breeze' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => true,
+							'blur_intensity' => 15,
+							'floating' => false,
+							'border_radius' => 8,
+							'shadow' => 'subtle',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 4,
+							'shadow' => 'subtle',
+						),
+					),
+				),
+			),
+			'elegant-rose' => array(
+				'id'          => 'elegant-rose',
+				'name'        => 'Elegant Rose',
+				'description' => 'Sophisticated rose tones for a refined look',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'rose-garden' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 13,
+							'font_weight' => 500,
+							'line_height' => 1.5,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 400,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 6,
+							'shadow' => 'subtle',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 4,
+							'shadow' => 'subtle',
+						),
+					),
+				),
+			),
+			'golden-luxury' => array(
+				'id'          => 'golden-luxury',
+				'name'        => 'Golden Luxury',
+				'description' => 'Luxurious golden tones for premium feel',
+				'thumbnail'   => '',
+				'is_custom'   => false,
+				'settings'    => array(
+					'palettes' => array( 'current' => 'golden-hour' ),
+					'typography' => array(
+						'admin_bar' => array(
+							'font_size' => 14,
+							'font_weight' => 500,
+							'line_height' => 1.5,
+						),
+						'admin_menu' => array(
+							'font_size' => 13,
+							'font_weight' => 500,
+							'line_height' => 1.5,
+						),
+					),
+					'visual_effects' => array(
+						'admin_bar' => array(
+							'glassmorphism' => false,
+							'floating' => true,
+							'floating_margin' => 10,
+							'border_radius' => 8,
+							'shadow' => 'elevated',
+						),
+						'admin_menu' => array(
+							'glassmorphism' => false,
+							'floating' => false,
+							'border_radius' => 6,
+							'shadow' => 'subtle',
+						),
+					),
+				),
+			),
+		);
+	}
+
+	/**
+	 * Apply a template.
+	 *
+	 * Applies complete template settings including palette, typography, and effects.
+	 * Requirement 3.2: Template management methods.
+	 *
+	 * @param string $template_id Template ID to apply.
+	 * @return bool True on success, false on failure.
+	 */
+	public function apply_template( $template_id ) {
+		$template = $this->get_template( $template_id );
+
+		if ( false === $template ) {
+			return false;
+		}
+
+		$current_settings = $this->get_option();
+
+		// Apply template settings (merge with current to preserve unrelated settings).
+		if ( isset( $template['settings'] ) && is_array( $template['settings'] ) ) {
+			foreach ( $template['settings'] as $key => $value ) {
+				if ( is_array( $value ) && isset( $current_settings[ $key ] ) && is_array( $current_settings[ $key ] ) ) {
+					$current_settings[ $key ] = $this->array_merge_recursive_distinct( $current_settings[ $key ], $value );
+				} else {
+					$current_settings[ $key ] = $value;
+				}
+			}
+		}
+
+		// Update current template.
+		$current_settings['templates']['current'] = $template_id;
+
+		// Apply palette if specified in template.
+		if ( isset( $template['settings']['palettes']['current'] ) ) {
+			$palette_id = $template['settings']['palettes']['current'];
+			$palette = $this->get_palette( $palette_id );
+			
+			if ( false !== $palette ) {
+				$current_settings['admin_bar'] = array_merge(
+					$current_settings['admin_bar'],
+					$palette['admin_bar']
+				);
+				$current_settings['admin_menu'] = array_merge(
+					$current_settings['admin_menu'],
+					$palette['admin_menu']
+				);
+			}
+		}
+
+		return $this->update_option( $current_settings );
+	}
+
+	/**
+	 * Save a custom template.
+	 *
+	 * Requirement 3.2: Template management methods.
+	 *
+	 * @param string $name     Template name.
+	 * @param array  $settings Template settings (complete settings snapshot).
+	 * @return string|false Template ID on success, false on failure.
+	 */
+	public function save_custom_template( $name, $settings ) {
+		// Validate settings structure.
+		$validated_settings = $this->validate( $settings );
+		if ( is_wp_error( $validated_settings ) ) {
+			return false;
+		}
+
+		$current_settings = $this->get_option();
+		
+		// Generate unique ID for custom template.
+		$template_id = 'custom_' . sanitize_title( $name ) . '_' . time();
+		
+		// Ensure custom templates array exists.
+		if ( ! isset( $current_settings['templates']['custom'] ) ) {
+			$current_settings['templates']['custom'] = array();
+		}
+
+		// Add custom template.
+		$current_settings['templates']['custom'][ $template_id ] = array(
+			'id'          => $template_id,
+			'name'        => sanitize_text_field( $name ),
+			'description' => '',
+			'thumbnail'   => '',
+			'is_custom'   => true,
+			'created_at'  => current_time( 'timestamp' ),
+			'settings'    => $validated_settings,
+		);
+
+		$result = $this->update_option( $current_settings );
+		
+		return $result ? $template_id : false;
+	}
+
+	/**
+	 * Delete a custom template.
+	 *
+	 * Requirement 3.2: Template management methods.
+	 *
+	 * @param string $template_id Template ID to delete.
+	 * @return bool True on success, false on failure.
+	 */
+	public function delete_custom_template( $template_id ) {
+		// Prevent deletion of default templates.
+		if ( strpos( $template_id, 'custom_' ) !== 0 ) {
+			return false;
+		}
+
+		$current_settings = $this->get_option();
+		
+		if ( ! isset( $current_settings['templates']['custom'][ $template_id ] ) ) {
+			return false;
+		}
+
+		// Remove custom template.
+		unset( $current_settings['templates']['custom'][ $template_id ] );
+
+		// If deleted template was current, reset to default.
+		if ( isset( $current_settings['templates']['current'] ) && 
+		     $current_settings['templates']['current'] === $template_id ) {
+			$current_settings['templates']['current'] = 'default';
+		}
+
+		return $this->update_option( $current_settings );
+	}
+
+	/**
+	 * Auto-switch palette based on time of day.
+	 *
+	 * Checks current time and applies configured palette for time period.
+	 * Requirement 3.3: Auto palette switching with time-based logic.
+	 *
+	 * @return bool True if palette was switched, false otherwise.
+	 */
+	public function auto_switch_palette() {
+		$settings = $this->get_option();
+		
+		// Check if auto-switching is enabled.
+		if ( ! isset( $settings['advanced']['auto_palette_switch'] ) || 
+		     ! $settings['advanced']['auto_palette_switch'] ) {
+			return false;
+		}
+
+		$current_hour = intval( current_time( 'H' ) );
+		$palette_id = $this->get_palette_for_time( $current_hour );
+		
+		// Check if palette needs to change.
+		$current_palette = isset( $settings['palettes']['current'] ) ? $settings['palettes']['current'] : '';
+		
+		if ( $palette_id === $current_palette ) {
+			return false;
+		}
+
+		// Apply the palette for current time.
+		return $this->apply_palette( $palette_id );
+	}
+
+	/**
+	 * Get palette ID for specific hour.
+	 *
+	 * Requirement 3.3: Time-based palette selection.
+	 *
+	 * @param int $hour Hour of day (0-23).
+	 * @return string Palette ID for the time period.
+	 */
+	public function get_palette_for_time( $hour ) {
+		$settings = $this->get_option();
+		$time_palettes = isset( $settings['advanced']['auto_palette_times'] ) ? 
+		                 $settings['advanced']['auto_palette_times'] : array();
+
+		// Default time periods.
+		if ( $hour >= 6 && $hour < 12 ) {
+			// Morning: 6:00-11:59.
+			return isset( $time_palettes['morning'] ) ? $time_palettes['morning'] : 'professional-blue';
+		} elseif ( $hour >= 12 && $hour < 18 ) {
+			// Afternoon: 12:00-17:59.
+			return isset( $time_palettes['afternoon'] ) ? $time_palettes['afternoon'] : 'energetic-green';
+		} elseif ( $hour >= 18 && $hour < 22 ) {
+			// Evening: 18:00-21:59.
+			return isset( $time_palettes['evening'] ) ? $time_palettes['evening'] : 'warm-orange';
+		} else {
+			// Night: 22:00-5:59.
+			return isset( $time_palettes['night'] ) ? $time_palettes['night'] : 'creative-purple';
+		}
 	}
 
 	/**
