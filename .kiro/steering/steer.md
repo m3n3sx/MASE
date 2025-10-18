@@ -1,0 +1,1 @@
+Test files must not be placed in root (use a dedicated test directory)
